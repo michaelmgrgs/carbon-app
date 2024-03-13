@@ -55,6 +55,11 @@ app.use(
     })
 );
 
+// Define route handler for the root URL
+app.get('/', (req, res) => {
+  res.redirect('/login');
+});
+
 // Routes
 app.use('/registration', RegistrationComponent);
 app.use('/login', LoginComponent);
