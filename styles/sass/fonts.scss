@@ -1,0 +1,13 @@
+@font-face {
+    font-family: 'Roboto', sans-serif;
+    src: local('Roboto'), url('http://fonts.gstatic.com/s/roboto/v27/KFOmCnqEu92Fr1Mu4mxK.woff2') format('woff2'), /* Modern Browsers */
+         url('http://fonts.gstatic.com/s/roboto/v27/KFOmCnqEu92Fr1Mu4mxK.woff') format('woff'); /* Legacy Browsers */
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400; /* Adjust the font weight as needed */
+    background-color: $primary-color;
+    margin: 0;
+    padding: 0;
+}

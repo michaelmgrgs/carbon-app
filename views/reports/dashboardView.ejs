@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>Dashboard</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container dashboard-container">
+            <div class="dashboard-header">
+                <h1>Dashboard</h1>
+                <select id="branchDropdown">
+                    <option value="all">All Branches</option>
+                    
+                </select>
+            </div>
+            <div class="reports-container">
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-user-group"></i> Total Members: <b id="totalMembersCount">0</b></h2>
+                    <div id="totalMembersChartContainer">
+                        <!-- Chart will be rendered here -->
+                        <canvas id="totalMembersChart" width="320" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="report-box">
+                    <div id="genderRatioBox">
+                        <h2><i class="fa-solid fa-venus-mars"></i> Gender: <b id="maleCount">0</b> Males / <b id="femaleCount">0</b> Females</h2>
+                        <canvas id="genderRatioChart" width="320" height="200"></canvas>
+                    </div>
+                </div>
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-map-location-dot"></i> Residential Areas</h2>
+                    <canvas id="residentialAreasChart" width="320" height="200"></canvas>
+                </div>
+            </div>
+            <div class="filters-container">
+                <select id="yearDropdown">
+                    
+                </select>
+                <select name="" id="monthDropdown">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="reports-container">
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-wallet"></i> Total Sales <b id="totalIncome">0</b></h2>
+                    <canvas id="totalIncomeChart" width="500" height="300"></canvas>
+                </div>
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-medal"></i> Traffic Chart</h2>
+                    <canvas id="attendanceChart" width="500" height="300"></canvas>
+                </div>
+            </div>
+            <div class="reports-container">
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-medal"></i> Packages Schemes</h2>
+                    <canvas id="bestSellingPackagesChart" width="800" height="350"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script type="module" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+
+                // Function to fetch available branches
+                function getAvailableBranches() {
+                    return new Promise((resolve, reject) => {
+                        $.ajax({
+                            url: '/reports/dashboard/all/availableBranches',
+                            method: 'GET',
+                            success: function (data) {
+                                resolve(data);
+                            },
+                            error: function (error) {
+                                reject(error);
+                            }
+                        });
+                    });
+                }
+
+                // Function to populate the branch dropdown dynamically
+                function populateBranchDropdown() {
+                    getAvailableBranches()
+                        .then(data => {
+                            const branchDropdown = $('#branchDropdown');
+                            
+                            // Clear existing options
+                            branchDropdown.empty();
+
+                            // Add the default "All Branches" option
+                            branchDropdown.append($('<option>', {
+                                value: 'all',
+                                text: 'All Branches'
+                            }));
+
+                            // Populate the dropdown with available branches
+                            data.forEach(branchObj => {
+                                // Extract the branch name from each object
+                                const branch = branchObj.branch_name;
+                                branchDropdown.append($('<option>', {
+                                    value: branch,
+                                    text: branch
+                                }));
+                            });
+                        })
+                        .catch(error => console.error('Error fetching available branches:', error));
+                }
+
+                // Call the function to populate the branch dropdown on page load
+                populateBranchDropdown();
+
+
+                // Initial fetch and render with the default branch
+                const defaultBranch = 'all';
+                getTotalMembersByBranch(defaultBranch);
+
+                // Handle branch selection change
+                $('#branchDropdown').on('change', function () {
+                    const selectedBranch = $(this).val();
+                    getTotalMembersByBranch(selectedBranch);
+                });
+            
+
+            // Function to fetch total members based on the selected branch
+            function getTotalMembersByBranch(branch) {
+                $.ajax({
+                    url: `/reports/dashboard/${branch}/totalMembers?branch=${branch}`,
+                    method: 'GET',
+                    success: function (data) {
+                        renderTotalMembersChart(data);
+                    },
+                    error: function (error) {
+                        console.error('Error fetching total members:', error);
+                    }
+                });
+            }
+
+            // Function to render the total members chart
+            function renderTotalMembersChart(data) {
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format. Expected an array.');
+                    return;
+                }
+
+                const ctx = document.getElementById('totalMembersChart').getContext('2d');
+
+                // If the chart already exists, destroy it
+                if (window.totalMembersChart && typeof window.totalMembersChart.destroy === 'function') {
+                    window.totalMembersChart.destroy();
+                }
+
+                const labels = data.map(entry => entry.branch_name);
+                const values = data.map(entry => entry.total_members);
+
+                // Update the total members box
+                const totalMembersCount = values.reduce((total, count) => total + parseInt(count), 0);
+                $('#totalMembersCount').text(totalMembersCount);
+
+                window.totalMembersChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Members',
+                            data: values,
+                            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Branch'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Total Members'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+
+
+            // Function to fetch gender data based on the selected branch
+            function getGenderDataByBranch(branch) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: `/reports/dashboard/${branch}/genderData?branch=${branch}`,
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+            
+            // Function to render the gender chart and update the gender box
+            function renderGenderRatioChart(data) {
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format. Expected an array.');
+                    return;
+                }
+
+                // Create or update the chart
+                const ctx = document.getElementById('genderRatioChart').getContext('2d');
+                // If the chart already exists, destroy it
+                if (window.genderRatioChart && typeof window.genderRatioChart.destroy === 'function') {
+                    window.genderRatioChart.destroy();
+                }
+
+                const labels = data.map(entry => entry.branch_name);
+                const maleCounts = data.map(entry => entry.male_count);
+                const femaleCounts = data.map(entry => entry.female_count);
+
+                // Update the gender ratio box
+                const totalMaleCount = maleCounts.reduce((total, count) => total + parseInt(count), 0);
+                const totalFemaleCount = femaleCounts.reduce((total, count) => total + parseInt(count), 0);
+
+                $('#maleCount').text(totalMaleCount);
+                $('#femaleCount').text(totalFemaleCount);
+
+                window.genderRatioChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Males',
+                        data: maleCounts,
+                        backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Females',
+                        data: femaleCounts,
+                        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                    },
+                    options: {
+                    scales: {
+                        x: {
+                        title: {
+                            display: true,
+                            text: 'Branch'
+                        }
+                        },
+                        y: {
+                        title: {
+                            display: true,
+                            text: 'Gender Count'
+                        },
+                        beginAtZero: true
+                        }
+                    }
+                    }
+                });
+            }
+
+            // Fetch gender data and render the chart on page load
+            // const defaultBranch = 'all';
+            getGenderDataByBranch(defaultBranch)
+            .then(data => renderGenderRatioChart(data))
+            .catch(error => console.error('Error fetching and rendering gender data:', error));
+
+            // Handle branch selection change
+            $('#branchDropdown').on('change', function () {
+            const selectedBranch = $(this).val();
+            getGenderDataByBranch(selectedBranch)
+                .then(data => renderGenderRatioChart(data))
+                .catch(error => console.error('Error fetching and rendering gender data:', error));
+            });
+
+
+            /////////// Residential Area ///////////////
+
+            // Function to fetch residential areas data based on the selected branch
+            function getResidentialAreasDataByBranch(branch) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: `/reports/dashboard/${branch}/residentialAreasData?branch=${branch}`,
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+            // Function to render the residential areas pie chart
+            function renderResidentialAreasChart(data) {
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format. Expected an array.');
+                    return;
+                }
+
+                // Create or update the chart
+                const ctx = document.getElementById('residentialAreasChart').getContext('2d');
+                // If the chart already exists, destroy it
+                if (window.residentialAreasChart && typeof window.residentialAreasChart.destroy === 'function') {
+                    window.residentialAreasChart.destroy();
+                }
+
+                const labels = data.map(entry => entry.residential_area);
+                const counts = data.map(entry => entry.area_count);
+
+                window.residentialAreasChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Residential Areas Count',
+                            data: counts,
+                            backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Residential Area'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Area Count'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Fetch residential areas data and render the chart on page load
+            // const defaultBranch = 'all';
+            getResidentialAreasDataByBranch(defaultBranch)
+                .then(data => renderResidentialAreasChart(data))
+                .catch(error => console.error('Error fetching and rendering residential areas data:', error));
+
+            // Handle branch selection change
+            $('#branchDropdown').on('change', function () {
+                const selectedBranch = $(this).val();
+                getResidentialAreasDataByBranch(selectedBranch)
+                    .then(data => renderResidentialAreasChart(data))
+                    .catch(error => console.error('Error fetching and rendering residential areas data:', error));
+            });
+
+
+            ///////////// Best Selling Packages /////////////
+
+            // Function to fetch best-selling packages data based on the selected branch
+            function getBestSellingPackagesData(branch) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: `/reports/dashboard/${branch}/bestSellingPackagesData?branch=${branch}`,
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+            // Function to render the best-selling packages bar chart
+            function renderBestSellingPackagesChart(data) {
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format. Expected an array.');
+                    return;
+                }
+
+                // Create or update the chart
+                const ctx = document.getElementById('bestSellingPackagesChart').getContext('2d');
+                // If the chart already exists, destroy it
+                if (window.bestSellingPackagesChart && typeof window.bestSellingPackagesChart.destroy === 'function') {
+                    window.bestSellingPackagesChart.destroy();
+                }
+
+                const labels = data.map(entry => entry.package_name);
+                const packageCounts = data.map(entry => entry.package_count);
+
+                // Find the maximum and minimum package counts
+                const maxCount = Math.max(...packageCounts);
+                const minCount = Math.min(...packageCounts);
+
+                window.bestSellingPackagesChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Package Counts',
+                            data: packageCounts,
+                            backgroundColor: packageCounts.map(count => (count === maxCount ? 'rgba(0, 0, 0, 0.8)' : count === minCount ? 'rgba(75, 192, 192, 0.8)' : 'rgba(75, 192, 192, 0.8)')),
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Package'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Package Count'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+
+            // Fetch best-selling packages data and render the chart on page load
+            getBestSellingPackagesData(defaultBranch)
+            .then(data => renderBestSellingPackagesChart(data))
+            .catch(error => console.error('Error fetching and rendering best-selling packages data:', error));
+
+            // Handle branch selection change
+            $('#branchDropdown').on('change', function () {
+                const selectedBranch = $(this).val();
+                getBestSellingPackagesData(selectedBranch)
+                .then(data => renderBestSellingPackagesChart(data))
+                .catch(error => console.error('Error fetching and rendering best-selling packages data:', error));
+            });
+
+            ////////////////// Total Income //////////////////
+
+            // Get the current year dynamically
+            const currentYear = new Date().getFullYear();
+
+            // Set the defaultYear variable to the current year
+            const defaultYear = currentYear.toString();
+
+            // Function to fetch total income data based on the selected branch
+            function getTotalIncome(branch, year) {
+                console.log('Year isss: ', year);
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: `/reports/dashboard/${branch}/totalIncome?branch=${branch}&year=${year}`,
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+
+            // Function to display total income in the <p> tag
+            function displayTotalIncome(data, defaultYear) {
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format. Expected an array.');
+                    return;
+                }
+
+                const totalIncome = data.reduce((total, entry) => total + parseFloat(entry.total_income), 0);
+                const formattedTotalIncome = totalIncome.toLocaleString('en-US', {
+                    style: 'currency',
+                    currency: 'EGP',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+
+                $('#totalIncome').text(formattedTotalIncome);
+            }
+
+
+            // Function to generate a random color (for demonstration purposes)
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+
+            // Fetch total income data and render the chart on page load
+            function renderTotalIncomeChart(data, year) {
+                console.log('the year is check: ', year);
+                console.log('And the data is check: ', data);
+                if (!Array.isArray(data)) {
+                    console.error('Invalid data format. Expected an array.');
+                    return;
+                }
+
+                // Create or update the chart
+                const ctx = document.getElementById('totalIncomeChart').getContext('2d');
+                // If the chart already exists, destroy it
+                if (window.TotalIncomeChart && typeof window.TotalIncomeChart.destroy === 'function') {
+                    window.TotalIncomeChart.destroy();
+                }
+
+                // Filter data by the selected year
+                const filteredData = data.filter(entry => entry.year === year);
+
+                // Create a Set to store unique months
+                const uniqueMonths = new Set();
+
+                // Iterate over the data to populate uniqueMonths
+                filteredData.forEach(entry => uniqueMonths.add(entry.month));
+
+                // Convert Set back to an array
+                const labels = Array.from(uniqueMonths);
+
+                const datasets = [];
+
+                // Separate datasets for each branch
+                const branchNames = Array.from(new Set(filteredData.map(entry => entry.branch_name)));
+                branchNames.forEach(branch => {
+                    const branchData = filteredData.filter(entry => entry.branch_name === branch);
+                    const branchIncome = [];
+
+                    // Populate branchIncome array with zeroes for each month
+                    labels.forEach(month => {
+                        const matchingEntry = branchData.find(entry => entry.month === month);
+                        branchIncome.push(matchingEntry ? parseFloat(matchingEntry.total_income) : 0);
+                    });
+
+                    datasets.push({
+                        label: branch,
+                        data: branchIncome,
+                        fill: false,
+                        borderColor: getRandomColor(),
+                        tension: 0.4
+                    });
+                });
+
+                window.TotalIncomeChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Month'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Total Income'
+                                },
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            getTotalIncome(defaultBranch, defaultYear)
+            .then(data => {
+                console.log('Data fetched successfully on page load:', data);
+                renderTotalIncomeChart(data, defaultYear);
+                displayTotalIncome(data, defaultYear);
+            })
+            .catch(error => console.error('Error fetching and rendering total income data:', error));
+
+
+            // Handle branch selection change
+            $('#branchDropdown').on('change', function () {
+                const selectedBranch = $(this).val();
+                const selectedYear = $('#yearDropdown').val();
+                getTotalIncome(selectedBranch, selectedYear)
+                    .then(data => {
+                        renderTotalIncomeChart(data, selectedYear);
+                        displayTotalIncome(data);
+                    })
+                    .catch(error => console.error('Error fetching and rendering total income:', error));
+            });
+
+            // Function to fetch all avaliable years based on the selected branch
+            function getAvailableYears(branch) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: `/reports/dashboard/${branch}/availableYears?branch=${branch}`,
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+            // Function to populate the year dropdown dynamically
+            function populateYearDropdown(branch) {
+                getAvailableYears(branch)
+                    .then(data => {
+                        const yearDropdown = $('#yearDropdown');
+                        // Extract unique years and sort them in descending order
+                        const uniqueYears = [...new Set(data.map(entry => entry.year))].sort((a, b) => b - a);
+
+                        // Clear existing options
+                        yearDropdown.empty();
+
+                        // Populate the dropdown with unique years
+                        uniqueYears.forEach(year => {
+                            yearDropdown.append($('<option>', {
+                                value: year,
+                                text: year
+                            }));
+                        });
+                    })
+                    .catch(error => console.error('Error fetching available years:', error));
+            }
+
+            // Call the function to populate the year dropdown on page load
+            populateYearDropdown(defaultBranch);
+
+            // Handle year selection change
+            $('#yearDropdown').on('change', function () {
+                const selectedYear = $(this).val();
+                const selectedBranch = $('#branchDropdown').val();
+                console.log('The selected year is: ', selectedYear);
+                getTotalIncome(selectedBranch, selectedYear)
+                    .then(data => {
+                        renderTotalIncomeChart(data, selectedYear);
+                        displayTotalIncome(data);
+                    })
+                    .catch(error => console.error('Error fetching and rendering total income:', error));
+            });
+
+
+            //////////////  Attendance Chart ///////////
+
+            // Function to get attendance data
+            function getAttendanceData(branch, month, year) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: `/reports/dashboard/${branch}/attendanceData?branch=${branch}&month=${month}&year=${year}`,
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+            // Function to display attendance best times chart
+            function renderAttendanceChart(data) {
+                console.log('Attendance Data: ', data);
+                // Implement rendering logic for the attendance chart using a chart library (e.g., Chart.js)
+            }
+
+            // Function to handle attendance chart rendering on page load
+            function renderInitialAttendanceChart(branch, defaultMonth, defaultYear) {
+                getAttendanceData(branch, defaultMonth, defaultYear)
+                    .then(data => renderAttendanceChart(data))
+                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+            }
+
+            // Function to display attendance best times chart using Chart.js
+            function renderAttendanceChart(data) {
+                console.log('Attendance Data: ', data);
+
+                const ctx = document.getElementById('attendanceChart').getContext('2d');
+                
+                // Extract data for labels, datasets, etc., based on your data structure
+                const formattedTimes = data.map(entry => {
+                    const [hours, minutes] = entry.time.split(':');
+                    const parsedHours = parseInt(hours, 10);
+                    const period = parsedHours >= 12 ? 'PM' : 'AM';
+                    const formattedHours = parsedHours % 12 || 12; // Convert 0 to 12 for 12-hour format
+                    return `${formattedHours}:${minutes} ${period}`;
+                });
+
+                const datasets = [
+                    {
+                        label: 'Attendance Count',
+                        data: data.map(entry => entry.attendance_count),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        fill: false
+                    }
+                ];
+
+                const options = {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Attendance Count'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                };
+
+                const config = {
+                    type: 'line',
+                    data: {
+                        labels: formattedTimes,
+                        datasets: datasets
+                    },
+                    options: options
+                };
+
+                // Create or update the chart
+                if (window.AttendanceChart && typeof window.AttendanceChart.destroy === 'function') {
+                    window.AttendanceChart.destroy();
+                }
+
+                window.AttendanceChart = new Chart(ctx, config);
+            }
+
+
+//             function renderAttendanceChart(data) {
+//     console.log('Attendance Data: ', data);
+
+//     const ctx = document.getElementById('attendanceChart').getContext('2d');
+
+//     // Extract data for labels, datasets, etc., based on your data structure
+//     const formattedTimes = data.map(entry => {
+//         // Assuming entry.time is in the format '2024-02-03 17:45:36.119626'
+//         const timestamp = new Date(entry.time.replace(' ', 'T')); // Replace space with 'T' for correct parsing
+//         const hours = timestamp.getHours();
+//         const minutes = timestamp.getMinutes();
+//         const period = hours >= 12 ? 'PM' : 'AM';
+//         const formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12-hour format
+//         return `${formattedHours}:${minutes < 10 ? '0' : ''}${minutes} ${period}`;
+//     });
+
+//     const datasets = [
+//         {
+//             label: 'Attendance Count',
+//             data: data.map(entry => entry.attendance_count),
+//             borderColor: 'rgba(75, 192, 192, 1)',
+//             borderWidth: 2,
+//             fill: false
+//         }
+//     ];
+
+//     const options = {
+//         responsive: false,
+//         maintainAspectRatio: false,
+//         scales: {
+//             x: {
+//                 title: {
+//                     display: true,
+//                     text: 'Time'
+//                 },
+//                 type: 'category',
+//                 labels: Array.from({ length: 24 }, (_, i) => `${(i % 12 || 12)} ${i >= 12 ? 'PM' : 'AM'}`),
+//                 beginAtZero: true
+//             },
+//             y: {
+//                 title: {
+//                     display: true,
+//                     text: 'Attendance Count'
+//                 },
+//                 beginAtZero: true
+//             }
+//         }
+//     };
+
+//     const config = {
+//         type: 'line',
+//         data: {
+//             labels: formattedTimes,
+//             datasets: datasets
+//         },
+//         options: options
+//     };
+
+//     // Create or update the chart
+//     if (window.AttendanceChart && typeof window.AttendanceChart.destroy === 'function') {
+//         window.AttendanceChart.destroy();
+//     }
+
+//     window.AttendanceChart = new Chart(ctx, config);
+// }
+
+            
+
+
+            // Get the current month and year dynamically
+            const currentDate = new Date();
+            const defaultMonth = currentDate.getMonth() + 1; // Months are 0-indexed
+            // const defaultYear = currentDate.getFullYear();
+
+            // Call the function to render the attendance chart on page load
+            renderInitialAttendanceChart(defaultBranch, defaultMonth, defaultYear);
+
+            console.log('Current Month is: ', defaultMonth);
+
+            // Set the selected attribute for the current month in the dropdown
+            $('#monthDropdown').val(defaultMonth);
+
+            // Handle branch selection change
+            $('#branchDropdown').on('change', function () {
+                const selectedBranch = $(this).val();
+                const selectedMonth = $('#monthDropdown').val();
+                const selectedYear = $('#yearDropdown').val();
+                getAttendanceData(selectedBranch, selectedMonth, selectedYear)
+                    .then(data => renderAttendanceChart(data))
+                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+            });
+
+            // Handle month selection change
+            $('#monthDropdown').on('change', function () {
+                const selectedMonth = $(this).val();
+                const selectedBranch = $('#branchDropdown').val();
+                const selectedYear = $('#yearDropdown').val();
+                getAttendanceData(selectedBranch, selectedMonth, selectedYear)
+                    .then(data => renderAttendanceChart(data))
+                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+            });
+
+            // Handle year selection change
+            $('#yearDropdown').on('change', function () {
+                const selectedYear = $(this).val();
+                const selectedBranch = $('#branchDropdown').val();
+                const selectedMonth = $('#monthDropdown').val();
+                getAttendanceData(selectedBranch, selectedMonth, selectedYear)
+                    .then(data => renderAttendanceChart(data))
+                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+            });
+
+        });
+    </script>
+
+</body>
+</html>

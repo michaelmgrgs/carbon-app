@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>Registration Form</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="registration-container">
+                <h1 class="form-title">Registration Form</h1>
+                <% if (customError) { %>
+                    <div id="error-message" class="error-message-container">
+                        <p class="error-message"><%= customError %></p>
+                    </div>
+                    <script>
+                        // Remove the success message container after 3 seconds
+                        setTimeout(() => {
+                            document.getElementById('error-message').style.display = 'none';
+                        }, 3000);
+                    </script>
+                <% } %>
+                <form class="registration-form" method="post" action="/registration/<%= branchName %>?branch=<%= branchName %>">
+                    <label class="form-label" for="firstName">First Name:</label>
+                    <input class="form-input" type="text" name="firstName" required>
+
+                    <label class="form-label" for="lastName">Last Name:</label>
+                    <input class="form-input" type="text" name="lastName" required>
+
+                    <label class="form-label" for="phoneNumber">Phone Number:</label>
+                    <input class="form-input" type="text" name="phoneNumber" required>
+
+                    <label class="form-label" for="email">Email:</label>
+                    <input class="form-input" type="email" name="email" required>
+
+                    <label class="form-label" for="password">Password:</label>
+                    <input class="form-input" type="password" name="password" required>
+
+                    <label class="form-label" for="age">Age:</label>
+                    <input class="form-input" type="number" name="age" required>
+
+                    <label class="form-label" for="gender">Gender:</label>
+                    <select class="form-input" name="gender" required>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+
+                    <label class="form-label" for="residentialArea">Residential Area:</label>
+                    <input class="form-input" type="text" name="residentialArea" required>
+
+                    <button class="submit-button" type="submit">Register</button>
+                </form>
+                <% if (successMessage) { %>
+                    <div id="success-message" class="success-message-container">
+                        <p class="success-message"><%= successMessage %></p>
+                    </div>
+                    <script>
+                        // Remove the success message container after 3 seconds
+                        setTimeout(() => {
+                            document.getElementById('success-message').style.display = 'none';
+                        }, 3000);
+                    </script>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

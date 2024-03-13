@@ -1,0 +1,115 @@
+<!-- views/users/list.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>Users Listing</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="user-listing">
+                <h1>Users Listing</h1>
+
+                <!-- User Search Filter -->
+                <label for="userFilter">Filter by Name:</label>
+                <input type="text" id="userFilter" name="userFilter" oninput="filterUsers()">
+                
+                <!-- User Table -->
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Phone Number</th>
+                            <th>Email</th>
+                            <th>Residential Area</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        <% users.forEach(user => { %>
+                            <tr>
+                                <td><%= user.id %></td>
+                                <td><%= user.first_name %></td>
+                                <td><%= user.last_name %></td>
+                                <td><%= user.phone_number %></td>
+                                <td><%= user.email %></td>
+                                <td><%= user.residential_area %></td>
+                                <td class="action-links">
+                                    <a href="/users/listing/view/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" class="green-btn">View</a>
+                                    <a href="/users/listing/edit/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" class="blue-btn">Edit</a>
+                                    <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
+                                        <a href="#" onclick="deleteUser('<%= user.id %>')" class="red-btn">Delete</a>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Filter Users Function
+        function filterUsers() {
+            const input = document.getElementById('userFilter');
+            const filter = input.value.toUpperCase();
+            const tableBody = document.getElementById('userTableBody');
+            const rows = tableBody.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const firstName = rows[i].getElementsByTagName('td')[1];
+                const lastName = rows[i].getElementsByTagName('td')[2];
+
+                if (firstName && lastName) {
+                    const textValue = (firstName.textContent || firstName.innerText) + ' ' +
+                                    (lastName.textContent || lastName.innerText);
+
+                    if (textValue.toUpperCase().indexOf(filter) > -1) {
+                        rows[i].style.display = '';
+                    } else {
+                        rows[i].style.display = 'none';
+                    }
+                }
+            }
+        }
+
+
+        // Delete User Function
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                // Use AJAX or fetch to send a DELETE request to the server
+                fetch(`/users/listing/delete/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error deleting user: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle success, e.g., update the UI or show a success message
+                    alert(data.message);
+                })
+                .catch(error => {
+                    // Handle errors, e.g., show an error message to the user
+                    console.error(error.message);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

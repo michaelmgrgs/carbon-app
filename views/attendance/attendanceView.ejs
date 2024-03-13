@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title><%= branchName %> Attendance</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="attendance-container">
+                <h1><%= branchName %> Branch Attendance</h1>
+                
+                <!-- User Selection Autocomplete -->
+                <div>
+                    <label for="userSearch">Enter Username or ID:</label>
+                    <input type="text" id="userSearch" name="userSearch" autocomplete="off">
+                    <ul id="userDropdown" class="user-dropdown"></ul>
+                </div>
+
+                <!-- Deduction Form -->
+                <form id="deductionForm">
+                    <div id="activePackages">
+                        <!-- Active packages will be displayed here -->
+                    </div>
+
+                    <div>
+                        <label for="selectedPackage">Select Package:</label>
+                        <select id="selectedPackage" name="selectedPackage" required>
+                            <!-- Active packages options will be dynamically added here using JavaScript -->
+                        </select>
+                    </div>
+
+                    <button type="button" onclick="attend()">Attend</button>
+                </form>
+
+                <!-- Display Messages -->
+                <div id="message-container" class="hidden">
+                    <p id="message" class="message"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include your JavaScript libraries here -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            const userDropdown = $('#userDropdown');
+            const userSearchInput = $('#userSearch');
+            const activePackagesContainer = $('#activePackages');
+            const selectedPackageDropdown = $('#selectedPackage');
+            const messageContainer = $('#message-container');
+            const messageText = $('#message');
+
+            // Initialize autocomplete on the search input
+            userSearchInput.autocomplete({
+                source: function (request, response) {
+                    axios.get(`/attendance/<%= branchName %>/activePackages?search=${request.term}`)
+                        .then(result => {
+                            const users = result.data;
+                            const userMap = new Map();
+
+                            users.forEach(user => {
+                                const { user_id, user_name, package_id, sessions_left, end_date, branch_name, name } = user;
+
+                                if (!userMap.has(user_name)) {
+                                    userMap.set(user_name, {
+                                        user_id,
+                                        user_name,
+                                        packages: []
+                                    });
+                                }
+
+                                userMap.get(user_name).packages.push({
+                                    package_id,
+                                    sessions_left,
+                                    end_date,
+                                    branch_name,
+                                    name
+                                });
+                            });
+
+                            const uniqueUsers = Array.from(userMap.values());
+                            response(uniqueUsers.map(user => ({ label: user.user_name, value: user.user_id, user })));
+                        })
+                        .catch(error => {
+                            console.error('Error fetching users:', error);
+                        });
+                },
+                minLength: 1,
+                select: function (event, ui) {
+                    const selectedUserId = ui.item.value;
+                    const selectedUserName = ui.item.label;
+
+                    axios.get(`/attendance/<%= branchName %>/activePackages?search=${selectedUserId}`)
+                        .then(response => {
+                            const activePackages = response.data;
+                            const activePackagesFiltered = activePackages.filter(package => moment().isBefore(package.end_date));
+
+                            if (activePackagesFiltered.length > 0) {
+                                activePackagesContainer.html(`
+                                    <h3>Active Packages For: ${selectedUserName}</h3>
+                                    <ul>
+                                        ${activePackagesFiltered.map(package => `
+                                            <li class="package-info">
+                                                <label><b>Branch:</b> ${package.branch_name}</label>
+                                                <label><b>Package Type:</b> ${package.name}</label>
+                                                <label><b>Sessions Left:</b> ${package.sessions_left} Sessions</label>
+                                                <label><b>Expires on:</b> ${moment(package.end_date).format('DD-MM-YYYY')}</label>    
+                                            </li>
+                                            <br />
+                                        `).join('')}
+                                    </ul>
+                                `);
+
+                                selectedPackageDropdown.html(activePackagesFiltered.map(package => `
+                                    <option value="${package.package_id}">
+                                        ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
+                                    </option>
+                                `).join(''));
+                            } else {
+                                activePackagesContainer.html('<p>No active packages available.</p>');
+                                selectedPackageDropdown.html('');
+                                setMessage('No active packages available.', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching active packages:', error);
+                        });
+                }
+            });
+
+            window.attend = function () {
+                const selectedUserId = userSearchInput.val();
+                const selectedPackageId = selectedPackageDropdown.val();
+
+                console.log('Payload:', { userId: selectedUserId, packageId: selectedPackageId });
+
+                    axios.post(`/attendance/<%= branchName %>?branch=<%= branchName %>`, {
+                        userId: selectedUserId,
+                        packageId: selectedPackageId,
+                    })
+                    .then(response => {
+                        const { success, message, userInfo } = response.data;
+
+                        messageText.text(message);
+                        messageContainer.removeClass('hidden');
+                        messageContainer.removeClass('error');
+                        messageContainer.removeClass('success');
+
+                        setMessage(message, success ? 'success' : 'error');
+
+                        if (success) {
+                            messageContainer.addClass('success');
+                        } else {
+                            messageContainer.addClass('error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error attending:', error);
+                    });
+            };
+
+            function setMessage(text, className) {
+                messageText.text(text);
+                messageContainer.removeClass('hidden').removeClass('success').removeClass('error').addClass(className);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const selectedPackageDropdown = document.getElementById('selectedPackage');
+            const branchName = '<%= branchName %>';
+
+            try {
+                const response = await axios.get(`/attendance/${branchName}/activePackages`);
+                const activePackages = response.data;
+                const activePackagesFiltered = activePackages.filter(package => moment().isBefore(package.end_date));
+
+                if (activePackagesFiltered.length > 0) {
+                    selectedPackageDropdown.innerHTML = activePackagesFiltered.map(package => `
+                        <option value="${package.package_id}">
+                            ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
+                        </option>
+                    `).join('');
+                } else {
+                    selectedPackageDropdown.innerHTML = '<option value="" disabled>No active packages available</option>';
+                }
+            } catch (error) {
+                console.error('Error fetching active packages:', error);
+            }
+        });
+    </script>
+</body>
+</html>

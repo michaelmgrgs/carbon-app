@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>User Details</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="user-details">
+                <h1>User Details</h1>
+
+                <div>
+                    <label>User ID:</label>
+                    <span><%= user.id %></span>
+                </div>
+
+                <div>
+                    <label>User Name:</label>
+                    <span><%= user.first_name %></span>
+                    <span><%= user.last_name %></span>
+                </div>
+
+                <div>
+                    <label>Phone Number:</label>
+                    <span><%= user.phone_number %></span>
+                </div>
+
+                <div>
+                    <label>E-mail:</label>
+                    <span><%= user.email %></span>
+                </div>
+
+                <div>
+                    <label>Age:</label>
+                    <span><%= user.age %></span>
+                </div>
+
+                <div>
+                    <label>Gender:</label>
+                    <span><%= user.gender %></span>
+                </div>
+
+                <div>
+                    <label>Residential Area:</label>
+                    <span><%= user.residential_area %></span>
+                </div>
+
+                <!-- Display Active Packages -->
+                <h2>Active Package</h2>
+                <table>
+                    <tr>
+                        <th>Package Name</th>
+                        <th>Branch</th>
+                        <th>Sessions Left</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                    </tr>
+                    <% if (user.activePackages && user.activePackages.length > 0) { %>
+                        <% user.activePackages.forEach(package => { %>
+                            <tr>
+                                <td><%= package.name %></td>
+                                <td><%= package.branch_name %></td>
+                                <td><%= package.sessions_left %></td>
+                                <td><%= moment(package.start_date).format('DD-MM-YYYY') %></td>
+                                <td><%= moment(package.end_date).format('DD-MM-YYYY') %></td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No active packages</p>
+                    <% } %>
+                </table>
+
+                <!-- Display Package History -->
+                <h2>Packages History</h2>
+                <table>
+                    <tr>
+                        <th>Package Name</th>
+                        <th>Branch</th>
+                        <th>Sessions Left</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                    </tr>
+                    <% if (user.packageHistory && user.packageHistory.length > 0) { %>
+                        <% user.packageHistory.forEach(history => { %>
+                            <tr>
+                                <td><%= history.name %></td>
+                                <td><%= history.branch_name %></td>
+                                <td><%= history.sessions_left %></td>
+                                <td><%= moment(history.start_date).format('DD-MM-YYYY') %></td>
+                                <td><%= moment(history.end_date).format('DD-MM-YYYY') %></td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No package history</p>
+                    <% } %>
+                    
+                </table>
+
+                <div class="action-links">
+                    <a href="/users/listing/edit/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" class="blue-btn">Edit</a>
+                    <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
+                        <a href="#" onclick="deleteUser('<%= user.id %>')" class="red-btn">Delete</a>
+                    <% } %>
+                    <a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" class="green-btn">Back to User List</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    
+    <script>
+        // Delete User Function
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                // Use AJAX or fetch to send a DELETE request to the server
+                fetch(`/users/listing/delete/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error deleting user: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle success, e.g., update the UI or show a success message
+                    alert(data.message);
+                })
+                .catch(error => {
+                    // Handle errors, e.g., show an error message to the user
+                    console.error(error.message);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

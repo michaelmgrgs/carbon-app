@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>Edit User Details</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="user-details">
+                <h1>Edit User Details</h1>
+
+                <form action="/users/listing/update/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>"  method="post">
+                    <div>
+                        <label>User ID:</label>
+                        <input type="text" name="userId" value="<%= user.id %>" disabled>
+                    </div>
+
+                    <div>
+                        <label>First Name:</label>
+                        <input type="text" name="first_name" value="<%= user.first_name %>">
+                        <label>Last Name:</label>
+                        <input type="text" name="last_name" value="<%= user.last_name %>">
+                    </div>
+
+                    <div>
+                        <label>Phone Number:</label>
+                        <input type="text" name="phone_number" value="<%= user.phone_number %>">
+                    </div>
+
+                    <div>
+                        <label>E-mail:</label>
+                        <input type="email" name="email" value="<%= user.email %>">
+                    </div>
+
+                    <div>
+                        <label>Age:</label>
+                        <input type="number" name="age" value="<%= user.age %>">
+                    </div>
+
+                    <div>
+                        <label>Gender:</label>
+                        <select name="gender" required>
+                            <option value="male" <%= user.gender === 'male' ? 'selected' : '' %>>Male</option>
+                            <option value="female" <%= user.gender === 'female' ? 'selected' : '' %>>Female</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Residential Area:</label>
+                        <input type="text" name="residential_area" value="<%= user.residential_area %>">
+                    </div>
+
+                    <button type="submit" class="green-btn">Update User</button>
+                </form>
+
+                
+
+
+                <div class="action-links">
+                    <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
+                        <a href="#" onclick="deleteUser('<%= user.id %>')" class="red-btn">Delete</a>
+                    <% } %>
+                    <a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" class="green-btn">Back to User List</a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    
+    <script>
+        // Delete User Function
+        function deleteUser(userId) {
+            if (confirm('Are you sure you want to delete this user?')) {
+                // Use AJAX or fetch to send a DELETE request to the server
+                fetch(`/users/listing/delete/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error deleting user: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Handle success, e.g., update the UI or show a success message
+                    alert(data.message);
+                })
+                .catch(error => {
+                    // Handle errors, e.g., show an error message to the user
+                    console.error(error.message);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

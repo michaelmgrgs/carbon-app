@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>Home Page</title>
+</head>
+<body>
+    <div class="home-container">
+        <div class="logo">
+            <img src="/images/carbon-logo.png" alt="Logo">
+        </div>
+        <div class="branches-container">
+            <% branches.forEach(branch => { %>
+                <a href="/users/listing/<%= branch.branch_name %>?branch=<%= branch.branch_name %>" class="branch-box" id="<%= branch.branch_name.toLowerCase() %>">
+                    <h2><%= branch.branch_name %> Branch</h2>
+                </a>
+            <% }); %>
+        </div>
+    </div>
+</body>
+</html>

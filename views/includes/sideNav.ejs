@@ -1,0 +1,56 @@
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Get the current path including potential query parameters
+      const currentPath = window.location.pathname + window.location.search;
+  
+      // Find the corresponding navigation link and add the 'active' class
+      const navLinks = document.querySelectorAll('.nav-link');
+      navLinks.forEach(link => {
+        const linkPath = link.getAttribute('href');
+        if (currentPath === linkPath) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+
+<div class="side-nav">
+    <div class="logo">
+        <img src="/images/carbon-logo.png" alt="Logo">
+    </div>
+    <div class="user-info">
+        <% if (loggedInUser) { %>
+          <p>Welcome <%= loggedInUser.first_name %> <%= loggedInUser.last_name %></p>
+        <% } else { %>
+          <p>Welcome Guest</p>
+        <% } %>
+    </div>
+    <div class="links">
+        <ul>
+            <li><a href="/home" class="nav-link"><i class="fa-solid fa-house"></i> Home</a></li>
+            <li><a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-users"></i> Users</a></li>
+            <li><a href="/registration/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-address-card"></i> Registartion</a></li>
+            <li><a href="/subscriptions/branch/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-cash-register"></i> Subscription</a></li>
+            <li><a href="/attendance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-file-excel"></i> Attendance</a></li>
+        </ul>
+    </div>
+    <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
+        <div class="super-links">
+            <ul>
+                <li><a href="/reports/dashboard/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                <li><a href="/packages/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Packages</a>
+                    <ul>
+                        <li><a href="/packages/create/<%= branchName %>?branch=<%= branchName %>">Create Packages</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" class="nav-link"><i class="fa-solid fa-money-bill-wave"></i> Finance</a></li>
+            </ul>
+        </div>
+    <% } %>
+    <div class="logout">
+        <form method="post" action="/logout">
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </form>
+    </div>
+</div>
+

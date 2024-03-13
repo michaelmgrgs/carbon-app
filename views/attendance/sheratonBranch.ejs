@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/styles/atttendance.css">
+    <title>Sheraton Attendance</title>
+</head>
+<body>
+    <h1>Sheraton Attendance</h1>
+    
+    <!-- User Selection Autocomplete -->
+    <div>
+        <label for="userSearch">Enter Username or ID:</label>
+        <input type="text" id="userSearch" name="userSearch" autocomplete="off">
+        <ul id="userDropdown" class="user-dropdown"></ul>
+    </div>
+
+    <!-- Deduction Form -->
+    <form id="deductionForm">
+        <div id="activePackages">
+            <!-- Active packages will be displayed here -->
+        </div>
+
+        <div>
+            <label for="selectedPackage">Select Package:</label>
+            <select id="selectedPackage" name="selectedPackage" required>
+                <!-- Active packages options will be dynamically added here using JavaScript -->
+            </select>
+        </div>
+
+        <button type="button" onclick="attend()">Attend</button>
+    </form>
+
+    <!-- Display Messages -->
+    <div id="message-container" class="hidden">
+        <p id="message" class="message"></p>
+    </div>
+
+    <!-- Include your JavaScript libraries here -->
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const userDropdown = $('#userDropdown');
+            const userSearchInput = $('#userSearch');
+            const activePackagesContainer = $('#activePackages');
+            const selectedPackageDropdown = $('#selectedPackage');
+            const messageContainer = $('#message-container');
+            const messageText = $('#message');
+
+            // Initialize autocomplete on the search input
+            userSearchInput.autocomplete({
+            source: function (request, response) {
+                // Fetch all users based on the search term
+                axios.get(`/attendance/sheraton/activePackages?search=${request.term}`)
+                    .then(result => {
+                        const users = result.data;
+
+                        // Create a map to store unique users and their associated data
+                        const userMap = new Map();
+
+                        users.forEach(user => {
+                            const { user_id, user_name, package_id, sessions_left, end_date, branch_name, name } = user;
+
+                            // If the user is not already in the map, add them
+                            if (!userMap.has(user_name)) {
+                                userMap.set(user_name, {
+                                    user_id,
+                                    user_name,
+                                    packages: []
+                                });
+                            }
+
+                            // Add the package details to the user's packages array
+                            userMap.get(user_name).packages.push({
+                                package_id,
+                                sessions_left,
+                                end_date,
+                                branch_name,
+                                name
+                            });
+                        });
+
+                        // Transform the map values to an array for the autocomplete response
+                        const uniqueUsers = Array.from(userMap.values());
+
+                        response(uniqueUsers.map(user => ({ label: user.user_name, value: user.user_id, user })));
+                    })
+                    .catch(error => {
+                        console.error('Error fetching users:', error);
+                    });
+            },
+                minLength: 1, // Minimum characters before making a request
+                select: function (event, ui) {
+                    // Handle the selected user
+                    const selectedUserId = ui.item.value;
+                    const selectedUserName = ui.item.label;
+
+                    // Fetch and display active packages for the selected user
+                    axios.get(`/attendance/sheraton/activePackages?search=${selectedUserId}`)
+                        .then(response => {
+                            // Display active packages in the container
+                            console.log('Response from server:', response);
+
+                            // Check the structure of the response data
+                            console.log('Data in response:', response.data);
+
+                            const activePackages = response.data;
+                            console.log('Active packages:', activePackages);
+
+                            // Filter out expired packages
+                            const activePackagesFiltered = activePackages.filter(package => moment().isBefore(package.end_date));
+
+                            if (activePackagesFiltered.length > 0) {
+                                activePackagesContainer.html(`
+                                    <h3>Active Packages For: ${selectedUserName}</h3>
+                                    <ul>
+                                        ${activePackagesFiltered.map(package => `
+                                            <li class="package-info">
+                                                <label><b>Branch:</b> ${package.branch_name}</label>
+                                                <label><b>Package Type:</b> ${package.name}</label>
+                                                <label><b>Sessions Left:</b> ${package.sessions_left} Sessions</label>
+                                                <label><b>Expires on:</b> ${moment(package.end_date).format('DD-MM-YYYY')}</label>    
+                                            </li>
+                                            <br />
+                                        `).join('')}
+                                    </ul>
+                                `);
+
+                                // Populate the deduction form dropdown with active packages
+                                selectedPackageDropdown.html(activePackagesFiltered.map(package => `
+                                    <option value="${package.package_id}">
+                                        ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
+                                    </option>
+                                `).join(''));
+                            } else {
+                                // No active packages found
+                                activePackagesContainer.html('<p>No active packages available.</p>');
+                                selectedPackageDropdown.html('');
+                                setMessage('No active packages available.', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching active packages:', error);
+                        });
+
+
+                }
+            });
+
+            // Attend function
+            window.attend = function () {
+                // Retrieve the selected user ID from the search input
+                const selectedUserId = userSearchInput.val();
+                const selectedPackageId = selectedPackageDropdown.val();
+
+                // Call the server-side attendance logic with Axios
+                axios.post('/attendance/sheraton', {
+                    userId: selectedUserId,
+                    packageId: selectedPackageId,
+                })
+                .then(response => {
+                    const { success, message, userInfo } = response.data;
+
+                    // Display the message
+                    messageText.text(message);
+                    messageContainer.removeClass('hidden');
+                    messageContainer.removeClass('error');
+                    messageContainer.removeClass('success');
+
+                    setMessage(message, success ? 'success' : 'error');
+
+                    // Optionally, update the UI based on success or other criteria
+                    if (success) {
+                        messageContainer.addClass('success');
+                    }else {
+                        messageContainer.addClass('error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error attending:', error);
+                });
+            };
+
+            // Function to set message and its class
+            function setMessage(text, className) {
+                messageText.text(text);
+                messageContainer.removeClass('hidden').removeClass('success').removeClass('error').addClass(className);
+            }
+        });
+    </script>
+</body>
+</html>

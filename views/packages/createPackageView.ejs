@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>Create New Package</title>
+</head>
+<body>
+  <div class="main-container">
+    <%- include('../includes/sideNav') %>
+
+    <div class="content-container">
+      <div class="gym-packages-list">
+        <h1>Create New Gym Package</h1>
+        <div class="create-package-container">
+            <form action="/packages/create/<%= branchName %>?branch=<%= branchName %>" method="post">
+                <label>
+                    Branch Name:
+                    <select name="branch_Name" required>
+                      <% branches.forEach(branch => { %>
+                        <option value="<%= branch.branch_name %>"><%= branch.branch_name %></option>
+                      <% }); %>
+                    </select>
+                  </label>
+
+                <label>
+                    Name:
+                    <input type="text" name="name" required>
+                </label>
+
+                <label>
+                    Package Type:
+                    <select name="packageType" required>
+                        <option value="session">Session</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </label>
+
+                <label>
+                    Session Count:
+                    <input type="number" name="sessionCount" min="1">
+                </label>
+
+                <label>
+                    Validity Period (in days):
+                    <input type="number" name="validityPeriod" min="1">
+                </label>
+
+                <label>
+                    Price:
+                    <input type="number" name="price" step="0.01" min="0">
+                </label>
+
+                <label>
+                    Start Date:
+                    <input type="date" name="startDate">
+                </label>
+
+                <label>
+                    End Date:
+                    <input type="date" name="endDate">
+                </label>
+
+                <button type="submit">Create Package</button>
+            </form>
+
+            <% if (typeof successMessage !== 'undefined' || typeof errorMessage !== 'undefined') { %>
+                <div id="message-container" class="<%= successMessage ? 'success' : 'error' %>">
+                  <p class="message"><%= successMessage || errorMessage %></p>
+                </div>
+                <script>
+                  // Remove the message container after 3 seconds
+                  setTimeout(() => {
+                    document.getElementById('message-container').style.display = 'none';
+                  }, 3000);
+                </script>
+              <% } %>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

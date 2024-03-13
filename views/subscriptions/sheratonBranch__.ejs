@@ -1,0 +1,222 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    
+    <title>Sheraton Branch Subscription</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+        
+        <div class="content-container">
+            <div class="subscription-container">
+                <h1>Sheraton Branch Subscription</h1>
+                <form id="subscriptionForm" action="/subscriptions/Sheraton" method="post">
+                    <div>
+                        <label for="userName">Username or ID:</label>
+                        <input type="hidden" id="selectedUserId" name="userId" value="">
+                        <input type="text" name="userName" id="username" autocomplete="off" required>
+                        <ul id="userDropdown" class="user-dropdown"></ul>
+                    </div>
+                
+                    <div>
+                        <label for="packageId">Selected Package:</label>
+                        <select id="selectedPackage" name="packageId" required>
+                            <% sheratonPackages.forEach(package => { %>
+                                <option value="<%= package.package_id %>" data-validity="<%= package.validity_period %>" data-sessions_count="<%= package.session_count %>">
+                                    <%= package.name %> - <%= package.price %> EGP
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <!-- <p id="sessionsCount">Number of sessions: <%= sheratonPackages[0].session_count %> sessions</p> -->
+                        <p id="validityDisplay">Valid For: <%= sheratonPackages[0].validity_period %> days</p>
+                    </div>
+                
+                    <div>
+                        <label for="startDate">Start Date:</label>
+                        <input type="text" id="startDate" name="startDate" class="datepicker" PopupWidth="300px" required autocomplete="off">
+                    </div>
+
+                    <div>
+                        <label for="endDate">End Date:</label>
+                        <input type="text" id="endDate" name="endDate" readonly>
+                    </div>
+                            
+                    <button type="submit">Subscribe</button>
+                </form>
+                <% if (typeof successMessage !== 'undefined' || typeof errorMessage !== 'undefined') { %>
+                    <div id="message-container" class="<%= successMessage ? 'success' : 'error' %>">
+                        <p class="message"><%= successMessage || errorMessage %></p>
+                    </div>
+                    <script>
+                        // Remove the message container after 3 seconds
+                        setTimeout(() => {
+                            document.getElementById('message-container').style.display = 'none';
+                        }, 2000);
+                    </script>
+                <% } %>        
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            const userDropdown = $('#userDropdown');
+            const usernameInput = $('#username');
+            const selectedUserIdInput = $('#selectedUserId');
+
+            // Load all users on page load
+            $.ajax({
+                url: '/subscriptions/sheraton/allUsers',
+                method: 'GET',
+                success: function (data) {
+                    if (Array.isArray(data)) {
+                        const userDropdown = $('#userDropdown');
+                        data.forEach(user => {
+                            userDropdown.append(`<li data-id="${user.id}">${user.first_name} ${user.last_name}</li>`);
+                        });
+
+                        $('#username').on('input', function () {
+                            const input = $(this).val().toLowerCase();
+                            const filteredUsers = data.filter(user => {
+                                const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+                                const userIdString = String(user.id);
+                                return fullName.includes(input) || userIdString.toLowerCase().includes(input);
+                            });
+
+                            userDropdown.empty();
+                            filteredUsers.forEach(user => {
+                                userDropdown.append(`<li data-id="${user.id}">${user.first_name} ${user.last_name}</li>`);
+                            });
+
+                            userDropdown.toggle(!!filteredUsers.length);
+                        });
+
+                        userDropdown.on('click', 'li', function () {
+                            const selectedUserId = $(this).data('id');
+                            const selectedUserName = $(this).text();
+
+                            selectedUserIdInput.val(selectedUserId);
+                            usernameInput.val(selectedUserName);
+                            userDropdown.empty();
+                        });
+
+                        $(document).on('click', function (event) {
+                            if (!$(event.target).closest('#username').length && !$(event.target).closest('#userDropdown').length) {
+                                userDropdown.hide();
+                            }
+                        });
+
+                        $('#username').on('keydown', function (e) {
+                            const userDropdownItems = $('#userDropdown li');
+                            const selectedItem = userDropdownItems.filter('.selected');
+                            let currentIndex = selectedItem.index();
+
+                            if (e.keyCode === 38) {
+                                if (currentIndex > 0) {
+                                    userDropdownItems.removeClass('selected');
+                                    userDropdownItems.eq(currentIndex - 1).addClass('selected');
+                                }
+                            } else if (e.keyCode === 40) {
+                                if (currentIndex < userDropdownItems.length - 1) {
+                                    userDropdownItems.removeClass('selected');
+                                    userDropdownItems.eq(currentIndex + 1).addClass('selected');
+                                }
+                            } else if (e.keyCode === 13) {
+                                e.preventDefault();
+                                const selectedUserId = userDropdownItems.eq(currentIndex).data('id');
+                                const selectedUserName = userDropdownItems.eq(currentIndex).text();
+
+                                selectedUserIdInput.val(selectedUserId);
+                                usernameInput.val(selectedUserName);
+                                userDropdown.empty();
+                            }
+                        });
+                    } else {
+                        console.error('Invalid data format:', data);
+                    }
+                },
+                error: function (error) {
+                    console.error('Error fetching all users:', error);
+                }
+            });
+
+
+            const packageDropdown = $('#selectedPackage');
+            const validityDisplay = $('#validityDisplay');
+            const startDateInput = $('#startDate');
+            const endDateDisplay = $('#endDateDisplay');
+            const endDateInput = $('#endDate');
+            // const sessionsCountDisplay = $('#sessionsCount');
+
+            // Initial update based on the selected package when the page loads
+            updateValidityPeriod();
+            updateEndDate();
+
+            packageDropdown.on('change', function () {
+                // Update validity period when a different package is selected
+                updateValidityPeriod();
+                updateEndDate();
+            });
+
+            startDateInput.on('change', function () {
+                // Update end date when the start date changes
+                updateEndDate();
+            });
+
+            function updateValidityPeriod() {
+                const selectedPackage = packageDropdown.find('option:selected');
+                const validityPeriod = selectedPackage.data('validity');
+                validityDisplay.text(`Valid For: ${validityPeriod} days`);
+            }
+
+            function parseCustomDate(dateString) {
+                const parts = dateString.split('-');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1; // Months are zero-based
+                    const year = parseInt(parts[2], 10);
+                    return new Date(year, month, day);
+                }
+                return NaN; // Invalid date
+            }
+
+            function updateEndDate() {
+                const selectedPackage = packageDropdown.find('option:selected');
+                const validityPeriod = selectedPackage.data('validity');
+                const startDateString = startDateInput.val();
+
+                // Use moment.js to parse and manipulate dates
+                const startDateMoment = moment(startDateString, 'DD-MM-YYYY');
+                const endDateMoment = startDateMoment.add(validityPeriod, 'days');
+
+                // Format the date using moment.js
+                const endDateFormatted = endDateMoment.format('DD-MM-YYYY');
+
+                endDateInput.val(endDateFormatted);
+            }
+
+            // Initialize the Bootstrap datepicker
+            $('.datepicker').datepicker({
+                format: 'dd-mm-yyyy',
+                startDate: 'today',
+                autoclose: true,
+            });
+        });
+            
+    </script>
+
+</body>
+</html>

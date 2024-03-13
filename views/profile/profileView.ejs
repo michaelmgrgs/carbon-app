@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/styles/profile.css">
+    <title>Profile Page</title>
+</head>
+<body>
+    <div class="user-details">
+        <h1>Welcome <%= user.first_name %> <%= user.last_name %>!</h1>
+        <p><i>This is your profile page. Feel free to customize it!</i></p>
+
+        <div>
+            <label>User ID:</label>
+            <span><%= user.id %></span>
+        </div>
+
+        <div>
+            <label>User Name:</label>
+            <span><%= user.first_name %></span>
+            <span><%= user.last_name %></span>
+        </div>
+
+        <div>
+            <label>Phone Number:</label>
+            <span><%= user.phone_number %></span>
+        </div>
+
+        <div>
+            <label>E-mail:</label>
+            <span><%= user.email %></span>
+        </div>
+
+        <div>
+            <label>Age:</label>
+            <span><%= user.age %></span>
+        </div>
+
+        <div>
+            <label>Gender:</label>
+            <span><%= user.gender %></span>
+        </div>
+
+        <div>
+            <label>Residential Area:</label>
+            <span><%= user.residential_area %></span>
+        </div>
+
+        <!-- Display Active Packages -->
+        <h2>Active Package</h2>
+        <table>
+            <tr>
+                <th>Package Name</th>
+                <th>Branch</th>
+                <th>Sessions Left</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+            </tr>
+            <% if (user.activePackages && user.activePackages.length > 0) { %>
+                <% user.activePackages.forEach(package => { %>
+                    <tr>
+                        <td><%= package.name %></td>
+                        <td><%= package.branch_name %></td>
+                        <td><%= package.sessions_left %></td>
+                        <td><%= moment(package.start_date).format('DD-MM-YYYY') %></td>
+                        <td><%= moment(package.end_date).format('DD-MM-YYYY') %></td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <p>No active packages</p>
+            <% } %>
+        </table>
+
+        <!-- Display Package History -->
+        <h2>Packages History</h2>
+        <table>
+            <tr>
+                <th>Package Name</th>
+                <th>Branch</th>
+                <th>Sessions Left</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+            </tr>
+            <% if (user.packageHistory && user.packageHistory.length > 0) { %>
+                <% user.packageHistory.forEach(history => { %>
+                    <tr>
+                        <td><%= history.name %></td>
+                        <td><%= history.branch_name %></td>
+                        <td><%= history.sessions_left %></td>
+                        <td><%= moment(history.start_date).format('DD-MM-YYYY') %></td>
+                        <td><%= moment(history.end_date).format('DD-MM-YYYY') %></td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                <p>No package history</p>
+            <% } %>
+            
+        </table>
+
+        <div class="sign-out">
+            <form method="post" action="/logout">
+                <button type="submit" class="green-btn">Sign Out</button>
+            </form>
+        </div>
+
+    </div>
+</body>
+</html>

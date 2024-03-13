@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/node_modules/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/styles/styles.css">
+    <title>List of Gym Packages</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="gym-packages-list">
+                <h1>List of Gym Packages</h1>
+                <div class="packages-list-container">
+                    <label for="branchFilter">Filter by Branch:</label>
+                    <select id="branchFilter" onchange="filterPackages()">
+                        <option value="all">All Branches</option>
+                        <% branches.forEach(branch => { %>
+                            <option value="<%= branch.branch_name %>"><%= branch.branch_name %></option>
+                        <% }); %>
+                    </select>
+
+                    <ul id="packagesList">
+                        <!-- List items will be dynamically added/removed based on filter -->
+                        <% packages.sort((a, b) => a.package_id - b.package_id).forEach(package => { %>
+                            <li class="<%= package.branch_name %>">
+                                <div class="package-item">
+                                    <span><%= package.name %> - <%= package.price %></span>
+                                    <div>
+                                        <a href="/packages/edit/<%= package.package_id %>/<%= branchName %>?branch=<%= branchName %>">Edit</a>
+                                        <form action="/packages/delete/<%= package.package_id %>" method="post" style="display:inline;">
+                                            <button type="submit">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                        <% }); %>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    <script>
+        function filterPackages() {
+            var selectedBranch = document.getElementById('branchFilter').value;
+            var packages = document.getElementById('packagesList').getElementsByTagName('li');
+    
+            for (var i = 0; i < packages.length; i++) {
+                var packageBranch = packages[i].classList[0]; // Assuming the branch name is the first class
+                if (selectedBranch === 'all' || selectedBranch === packageBranch) {
+                    packages[i].style.display = 'block';
+                } else {
+                    packages[i].style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
