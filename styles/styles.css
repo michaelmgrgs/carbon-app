@@ -232,11 +232,14 @@ h1 {
 .user-listing a, .user-details a {
   text-decoration: none;
   margin-right: 10px;
-  padding: 8px 15px;
+  padding: 8px 5px;
   border-radius: 5px;
-  color: #fff;
+  color: #000;
   font-weight: bold;
   cursor: pointer;
+}
+.user-listing a:hover, .user-details a:hover {
+  color: #4d1d1f;
 }
 .user-listing button, .user-details button {
   margin-right: 10px;
@@ -279,12 +282,16 @@ h1 {
   text-align: left;
 }
 .user-listing th, .user-details th {
-  background-color: #6b6b6b;
+  background-color: #4d1d1f;
   color: #fff;
 }
 .user-listing h2, .user-details h2 {
   margin-top: 20px;
   margin-bottom: 10px;
+}
+
+.user-details i {
+  font-size: 20px;
 }
 
 .blue-btn {

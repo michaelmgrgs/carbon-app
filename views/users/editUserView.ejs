@@ -64,9 +64,9 @@
 
                 <div class="action-links">
                     <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
-                        <a href="#" onclick="deleteUser('<%= user.id %>')" class="red-btn">Delete</a>
+                        <a href="#" onclick="deleteUser('<%= user.id %>')" title="Delete"><i class="fa-regular fa-trash-can"></i></a>
                     <% } %>
-                    <a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" class="green-btn">Back to User List</a>
+                    <a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" title="Back to Listing"><i class="fa-solid fa-circle-arrow-left"></i></a>
                 </div>
 
             </div>
