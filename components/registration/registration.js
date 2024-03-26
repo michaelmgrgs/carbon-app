@@ -6,7 +6,7 @@ const router = express.Router();
 const { authenticate, checkRole } = require('../authMiddleware/authMiddleware');
 
 
-router.get('/:branchName', authenticate, checkRole(['superadmin' , 'admin', 'sales']), (req, res) => {
+router.get('/:branchName', (req, res) => { //authenticate, checkRole(['superadmin' , 'admin', 'sales']),
   const loggedInUser = req.session.user;
   let branchName = req.params.branchName || 'defaultBranch';
   

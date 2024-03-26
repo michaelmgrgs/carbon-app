@@ -13,7 +13,7 @@
       });
     });
   </script>
-
+<% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'admin' || loggedInUser.role === 'sales')) { %>
 <div class="side-nav">
     <div class="logo">
         <img src="/images/carbon-logo.png" alt="Logo">
@@ -63,4 +63,4 @@
         </form>
     </div>
 </div>
-
+<% } %>
