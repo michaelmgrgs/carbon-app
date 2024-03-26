@@ -23,7 +23,7 @@ async function getBranchPackages(branchName) {
 }
 
 // Display the subscription form for a branch
-router.get('/branch/:branchName', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
+router.get('/branch/:branchName', authenticate, checkRole(['superadmin', 'admin', 'sales']), async (req, res) => {
     try {
         let branchName = req.params.branchName || 'defaultBranch'; // Use a default branch if not provided
         let branchPackages;
@@ -104,7 +104,7 @@ router.post('/branch/:branchName', async (req, res) => {
 
 
 // Add a new route to fetch validity period based on the selected package
-router.get('/getValidityPeriod/:packageId', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
+router.get('/getValidityPeriod/:packageId', authenticate, checkRole(['superadmin', 'admin', 'sales']), async (req, res) => {
     try {
         const { packageId } = req.params;
 
@@ -126,7 +126,7 @@ router.get('/getValidityPeriod/:packageId', authenticate, checkRole(['superadmin
 
 
 // Fetch all users from the database
-router.get('/:branchName/allUsers', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
+router.get('/:branchName/allUsers', authenticate, checkRole(['superadmin', 'admin', 'sales']), async (req, res) => {
     try {
         const branchName = req.params.branchName;
         // Query the database to get all users

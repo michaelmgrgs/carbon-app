@@ -34,6 +34,16 @@
             <li><a href="/attendance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-file-excel"></i> Attendance</a></li>
         </ul>
     </div>
+
+    <% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'sales')) { %>
+        <div class="links">
+            <ul>
+                <li><a href="/reports/inactiveMembers/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-users-slash"></i> Inactive Users</a>
+                <li><a href="/reports/neverSubscribed/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-user-xmark"></i> Never Subscribed</a>
+            </ul>
+        </div>
+    <% } %>
+    
     <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
         <div class="super-links">
             <ul>

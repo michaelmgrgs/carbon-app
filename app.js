@@ -17,6 +17,8 @@ const subscriptionComponent = require('./components/subscriptions/subscriptions'
 const attendanceComponent = require('./components/attendance/attendance');
 const usersListingComponent = require('./components/users/listingUsers');
 const dashboardComponent = require('./components/reports/dashboard');
+const inactiveMembersComponent = require('./components/reports/inactiveMembers');
+const neverSubscribedComponent = require('./components/reports/neverSubscribed');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,6 +74,8 @@ app.use('/subscriptions', subscriptionComponent);
 app.use('/attendance', attendanceComponent);
 app.use('/users/listing', usersListingComponent);
 app.use('/reports/dashboard', dashboardComponent);
+app.use('/reports/inactiveMembers', inactiveMembersComponent);
+app.use('/reports/neverSubscribed', neverSubscribedComponent);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

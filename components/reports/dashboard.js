@@ -60,6 +60,166 @@ router.get('/:branch/totalMembers', authenticate, checkRole(['superadmin']), asy
 });
 
 
+//////////////////////////////////////////////////////////////////
+
+// Function to fetch total active members
+async function getTotalActiveMembersByBranch(branch) {
+    try {
+        const query = `
+        SELECT
+            COALESCE(branch_name, 'All Branches') AS branch_name,
+            COUNT(*) AS total_active_members
+        FROM (
+            SELECT DISTINCT ON (u.id)
+                us.branch_name,
+                u.id
+            FROM
+                users u
+            JOIN (
+                SELECT
+                    user_id,
+                    branch_name
+                FROM
+                    user_subscriptions
+                WHERE
+                    end_date >= CURRENT_DATE
+                GROUP BY
+                    user_id,
+                    branch_name
+            ) AS active_users ON u.id = active_users.user_id
+            JOIN
+                user_subscriptions us ON u.id = us.user_id
+            WHERE
+                ($1 = 'all' OR us.branch_name = $1)
+        ) AS active_users
+        GROUP BY
+            branch_name
+        ORDER BY
+            branch_name; 
+        `;
+        const values = [branch];
+
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching total active members with valid packages:', error);
+        throw error;
+    }
+}
+
+router.get('/:branch/totalActiveMembers', authenticate, checkRole(['superadmin']), async (req, res) => {
+    const branch = req.params.branch; // Retrieve branch from URL parameter
+
+    try {
+        const totalActiveMembersData = await getTotalActiveMembersByBranch(branch);
+        res.json(totalActiveMembersData);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+// Function to fetch total inactive members
+async function getTotalInactiveMembersByBranch(branch) {
+    try {
+        const query = `
+        SELECT
+            COALESCE(branch_name, 'All Branches') AS branch_name,
+            COUNT(*) AS total_inactive_members
+        FROM (
+            SELECT DISTINCT ON (u.id)
+                us.branch_name,
+                u.id
+            FROM
+                users u
+            LEFT JOIN (
+                SELECT
+                    user_id,
+                    branch_name
+                FROM
+                    user_subscriptions
+                WHERE
+                    end_date >= CURRENT_DATE
+                GROUP BY
+                    user_id,
+                    branch_name
+            ) AS active_users ON u.id = active_users.user_id
+            JOIN
+                user_subscriptions us ON u.id = us.user_id
+            WHERE
+                us.end_date < CURRENT_DATE
+                AND active_users.user_id IS NULL
+                AND ($1 = 'all' OR us.branch_name = $1)
+        ) AS inactive_users
+        GROUP BY
+            branch_name
+        ORDER BY
+            branch_name;    
+        `;
+        const values = [branch];
+
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching total inactive members:', error);
+        throw error;
+    }
+}
+
+router.get('/:branch/totalInactiveMembers', authenticate, checkRole(['superadmin']), async (req, res) => {
+    const branch = req.params.branch; // Retrieve branch from URL parameter
+
+    try {
+        const totalInactiveMembersData = await getTotalInactiveMembersByBranch(branch);
+        res.json(totalInactiveMembersData);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+// Function to fetch total of people never subscribed to any package before
+async function getTotalNeverSubscribed() {
+    try {
+        const query = `
+        SELECT
+            COUNT(*) AS total_never_subscribed_users
+        FROM
+            users u
+        LEFT JOIN
+            user_subscriptions us ON u.id = us.user_id
+        WHERE
+            us.user_id IS NULL
+            AND u.role NOT IN ('superadmin', 'admin', 'sales');
+        `;
+
+        const result = await pool.query(query);
+        return result.rows;
+    } catch (error) {
+        console.error('Error fetching total inactive members:', error);
+        throw error;
+    }
+}
+
+router.get('/:branch/totalNeverSubscribed', authenticate, checkRole(['superadmin']), async (req, res) => {
+    const branch = req.params.branch; // Retrieve branch from URL parameter
+
+    try {
+        const totalNeverSubscribedData = await getTotalNeverSubscribed(branch);
+        res.json(totalNeverSubscribedData);
+    } catch (error) {
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+
 
 // Function to fetch gender data based on the selected branch
 async function getGenderDataForBranch(branch) {
@@ -102,6 +262,7 @@ router.get('/:branch/genderData', authenticate, checkRole(['superadmin']), async
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
 
 // Function to fetch residential areas data based on the selected branch
 async function getResidentialAreasDataByBranch(branch) {
@@ -142,6 +303,7 @@ router.get('/:branch/residentialAreasData', authenticate, checkRole(['superadmin
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
 
 // Function to get best-selling packages data
 async function getBestSellingPackagesData(branch) {
@@ -179,9 +341,10 @@ router.get('/:branch/bestSellingPackagesData', authenticate, async (req, res) =>
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
 
 // Function to get total income
-async function getTotalIncome(branch, year) {
+async function getTotalIncome(branch, year, month) {
     const query = `
     SELECT
         TO_CHAR(us.start_date, 'Mon') AS month,
@@ -193,14 +356,16 @@ async function getTotalIncome(branch, year) {
     LEFT JOIN
         gym_packages gp ON us.package_id = gp.package_id
     WHERE
-        ($1 = 'all' OR us.branch_name = $1) AND EXTRACT(YEAR FROM us.start_date) = $2
+        ($1 = 'all' OR us.branch_name = $1) 
+        AND EXTRACT(YEAR FROM us.start_date) = $2
+        AND TO_CHAR(us.start_date, 'Mon') = $3
     GROUP BY
         TO_CHAR(us.start_date, 'Mon'), EXTRACT(YEAR FROM us.start_date), us.branch_name
     ORDER BY
         year, month;
     `;
 
-    const values = [branch, year];
+    const values = [branch, year, month];
     const result = await pool.query(query, values);
     return result.rows;
 }
@@ -213,8 +378,10 @@ router.get('/:branch/totalIncome', authenticate, async (req, res) => {
     const currentYear = new Date().getFullYear();
 
     const year = req.query.year || currentYear.toString();
+    const month = req.query.month || ''; // You can set default value here or handle it in the frontend
+
     try {
-        const totalIncome = await getTotalIncome(branch, year);
+        const totalIncome = await getTotalIncome(branch, year, month);
         res.json(totalIncome);
     } catch (error) {
         console.error('Error fetching total income data:', error);
@@ -222,6 +389,7 @@ router.get('/:branch/totalIncome', authenticate, async (req, res) => {
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
 
 // Function to get all avalible years
 async function getAvailableYears(branch) {
@@ -256,6 +424,7 @@ router.get('/:branch/availableYears', authenticate, async (req, res) => {
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
 
 // Function to get all branches
 async function getAvailableBranches(branch) {
@@ -280,13 +449,18 @@ router.get('/:branch/availableBranches', authenticate, async (req, res) => {
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
 
-// Function to get attendnace years
+// Function to get attendance data
 async function getAttendanceData(branch, month, year) {
+    // Convert month name to its corresponding numeric value
+    const monthNumeric = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
+
     const query = `
     SELECT
         EXTRACT(DOW FROM timestamp) AS day_of_week,
         TO_CHAR(timestamp, 'HH24:MI') AS time,
+        TO_CHAR(timestamp, 'Mon') AS month, -- Return abbreviated month names
         COUNT(*) AS attendance_count
     FROM
         attendance
@@ -296,12 +470,13 @@ async function getAttendanceData(branch, month, year) {
         AND EXTRACT(YEAR FROM timestamp) = $3
     GROUP BY
         EXTRACT(DOW FROM timestamp),
-        TO_CHAR(timestamp, 'HH24:MI')
+        TO_CHAR(timestamp, 'HH24:MI'),
+        TO_CHAR(timestamp, 'Mon') -- Group by month as well
     ORDER BY
         time;
     `;
 
-    const values = [branch, month, year];
+    const values = [branch, monthNumeric, year];
     const result = await pool.query(query, values);
     return result.rows;
 }
@@ -309,17 +484,18 @@ async function getAttendanceData(branch, month, year) {
 // Express route for fetching attendance data
 router.get('/:branch/attendanceData', authenticate, async (req, res) => {
     const branch = req.params.branch;
-    const month = req.query.month; // You might want to validate and sanitize input
-    const year = req.query.year; // You might want to validate and sanitize input
+    const month = req.query.month; // Month name (e.g., "Mar")
+    const year = req.query.year; // Numeric year value
 
     try {
         const attendanceData = await getAttendanceData(branch, month, year);
-        console.log(attendanceData);
         res.json(attendanceData);
     } catch (error) {
         console.error('Error fetching attendance data:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
 
 module.exports = router;

@@ -7,7 +7,7 @@ const { authenticate, checkRole } = require('../authMiddleware/authMiddleware');
 
 
 // User Listing Route
-router.get('/:branchName', authenticate, checkRole(['superadmin' , 'admin']), async (req, res) => {
+router.get('/:branchName', authenticate, checkRole(['superadmin' , 'admin', 'sales']), async (req, res) => {
     try {
         let branchName = req.params.branchName || 'defaultBranch'; // Use a default branch if not provided
 
@@ -28,7 +28,7 @@ router.get('/:branchName', authenticate, checkRole(['superadmin' , 'admin']), as
 
 
 
-router.get('/view/:userId/:branchName', authenticate, checkRole(['superadmin' , 'admin']), async (req, res) => {
+router.get('/view/:userId/:branchName', authenticate, checkRole(['superadmin' , 'admin', 'sales']), async (req, res) => {
     try {
         let branchName = req.params.branchName || 'defaultBranch'; // Use a default branch if not provided
         const userId = req.params.userId;
@@ -72,7 +72,7 @@ router.get('/view/:userId/:branchName', authenticate, checkRole(['superadmin' , 
 
 
 // User Edit Route
-router.get('/edit/:userId/:branchName', authenticate, checkRole(['superadmin' , 'admin']), async (req, res) => {
+router.get('/edit/:userId/:branchName', authenticate, checkRole(['superadmin' , 'admin', 'sales']), async (req, res) => {
     try {
         let branchName = req.params.branchName || 'defaultBranch'; // Use a default branch if not provided
         const userId = req.params.userId;
