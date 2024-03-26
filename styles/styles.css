@@ -700,4 +700,17 @@ button {
   background-color: #8c2b28;
 }
 
+.title-logo-con {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+.title-logo-con .logo {
+  width: 190px;
+}
+.title-logo-con .logo img {
+  width: 100%;
+}
+
 /*# sourceMappingURL=styles.css.map */
