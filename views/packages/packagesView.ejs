@@ -32,7 +32,7 @@
                                     <span><%= package.name %> - <%= package.price %></span>
                                     <div>
                                         <a href="/packages/edit/<%= package.package_id %>/<%= branchName %>?branch=<%= branchName %>">Edit</a>
-                                        <form action="/packages/delete/<%= package.package_id %>" method="post" style="display:inline;">
+                                        <form action="/packages/delete/<%= package.package_id %>/<%= branchName %>?branch=<%= branchName %>" method="post" style="display:inline;">
                                             <button type="submit">Delete</button>
                                         </form>
                                     </div>
