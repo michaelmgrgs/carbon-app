@@ -83,7 +83,7 @@ router.post('/delete/:packageId/:branchName', async (req, res) => {
     await pool.query(query, [packageId]);
 
     // Redirect to the packages listing page
-    res.redirect('/packages/branchName?branch=branchName');
+    res.redirect(`/packages/${branchName}?branch=${branchName}`);
   } catch (error) {
     console.error('Error deleting gym package:', error);
     res.status(500).send('Internal Server Error');
