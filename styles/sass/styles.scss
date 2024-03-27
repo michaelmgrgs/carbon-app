@@ -758,7 +758,18 @@ button{
     .logo{
         width: 190px;
         img{
-            width: 99%;
+            width: 100%;
+        }
+    }
+}
+
+@media only screen and (max-width: 767px) {
+    .title-logo-con{
+        .form-title{
+            font-size: 22px;
+        }
+        .logo{
+            width: 120px;
         }
     }
 }
