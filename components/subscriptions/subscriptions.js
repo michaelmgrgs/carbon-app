@@ -59,7 +59,7 @@ router.post('/branch/:branchName', async (req, res) => {
     try {
         const branchName = req.params.branchName;
         // Extract data from the form submission
-        const { userId, userName, packageId, startDate } = req.body;
+        const { userId, userName, packageId, startDate, paymentMethod } = req.body;
         const loggedInUser = req.session.user;
 
         // Fetch packages from the database
@@ -83,11 +83,11 @@ router.post('/branch/:branchName', async (req, res) => {
 
             // Insert the subscription data into the user_subscription table
             const insertSubscriptionQuery = `
-                INSERT INTO user_subscriptions (user_id, user_name, package_id, start_date, end_date, branch_name, sessions_left)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                INSERT INTO user_subscriptions (user_id, user_name, package_id, start_date, end_date, branch_name, sessions_left, payment_method)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             `;
 
-            await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount]);
+            await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount, paymentMethod]);
 
             // Render the view and pass endDate as a local variable
             res.render(`subscriptions/subscriptionsView`, { branchName, branchPackages, endDate, validityPeriod, successMessage, loggedInUser });
