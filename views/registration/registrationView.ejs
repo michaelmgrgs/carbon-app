@@ -57,7 +57,16 @@
                     </select>
 
                     <label class="form-label" for="residentialArea">Residential Area:</label>
-                    <input class="form-input" type="text" name="residentialArea" required>
+                    <!-- <input class="form-input" type="text" name="residentialArea" required> -->
+                    <select class="form-input" name="residentialArea" id="residentialArea" required>
+                        <option value="" disabled selected hidden>Please select an option...</option>
+                        <option value="Heliopolis">Heliopolis</option>
+                        <option value="New Cairo">New Cairo</option>
+                        <option value="Nasr City">Nasr City</option>
+                        <option value="Maadi">Maadi</option>
+                        <option value="Down Town">Down Town</option>
+                        <option value="Other">Other</option>
+                    </select>
 
                     <button class="submit-button" type="submit">Register</button>
                 </form>
