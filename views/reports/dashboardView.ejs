@@ -830,6 +830,7 @@
             getTotalIncome(defaultBranch, defaultYear, defaultMonth)
                 .then(data => {
                     renderTotalIncomeLineChart(data);
+                    displayTotalIncome(data, defaultYear, defaultMonth);
                 })
                 .catch(error => console.error('Error fetching and rendering total income data:', error));
 
@@ -842,6 +843,7 @@
                 getTotalIncome(selectedBranch, selectedYear, selectedMonth)
                     .then(data => {
                         renderTotalIncomeLineChart(data);
+                        displayTotalIncome(data, selectedYear, selectedMonth);
                     })
                     .catch(error => console.error('Error fetching and rendering total income data:', error));
             });
@@ -854,6 +856,7 @@
                 getTotalIncome(selectedBranch, selectedYear, selectedMonth)
                     .then(data => {
                         renderTotalIncomeLineChart(data);
+                        displayTotalIncome(data, selectedYear, selectedMonth);
                     })
                     .catch(error => console.error('Error fetching and rendering total income data:', error));
             });
@@ -866,6 +869,7 @@
                 getTotalIncome(selectedBranch, selectedYear, selectedMonth)
                     .then(data => {
                         renderTotalIncomeLineChart(data);
+                        displayTotalIncome(data, selectedYear, selectedMonth);
                     })
                     .catch(error => console.error('Error fetching and rendering total income data:', error));
             });
