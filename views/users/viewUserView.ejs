@@ -60,6 +60,7 @@
                         <th>Sessions Left</th>
                         <th>Start Date</th>
                         <th>End Date</th>
+                        <th>Payment Method</th>
                     </tr>
                     <% if (user.activePackages && user.activePackages.length > 0) { %>
                         <% user.activePackages.forEach(package => { %>
@@ -69,6 +70,7 @@
                                 <td><%= package.sessions_left %></td>
                                 <td><%= moment(package.start_date).format('DD-MM-YYYY') %></td>
                                 <td><%= moment(package.end_date).format('DD-MM-YYYY') %></td>
+                                <td><%= package.payment_method %></td>
                             </tr>
                         <% }); %>
                     <% } else { %>
@@ -85,6 +87,7 @@
                         <th>Sessions Left</th>
                         <th>Start Date</th>
                         <th>End Date</th>
+                        <th>Payment Method</th>
                     </tr>
                     <% if (user.packageHistory && user.packageHistory.length > 0) { %>
                         <% user.packageHistory.forEach(history => { %>
@@ -94,6 +97,7 @@
                                 <td><%= history.sessions_left %></td>
                                 <td><%= moment(history.start_date).format('DD-MM-YYYY') %></td>
                                 <td><%= moment(history.end_date).format('DD-MM-YYYY') %></td>
+                                <td><%= history.payment_method %></td>
                             </tr>
                         <% }); %>
                     <% } else { %>
