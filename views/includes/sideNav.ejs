@@ -12,9 +12,39 @@
         }
       });
     });
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const sideNavMobile = document.querySelector('.side-nav-mobile');
+        const sideNav = document.querySelector('.side-nav');
+
+        if (sideNavMobile && sideNav) {
+            sideNavMobile.addEventListener('click', function() {
+                sideNav.classList.add('open');
+            });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeMobileNav = document.querySelector('.close-icon-mob');
+        const sideNav = document.querySelector('.side-nav');
+
+        if (closeMobileNav && sideNav) {
+            closeMobileNav.addEventListener('click', function() {
+                sideNav.classList.remove('open');
+            });
+        }
+    });
+
   </script>
 <% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'admin' || loggedInUser.role === 'sales')) { %>
+<div class="side-nav-mobile">
+    <a href="#"><i class="fa-solid fa-bars"></i></a>
+</div>
 <div class="side-nav">
+    <div class="close-icon-mob">
+        <a href="#"><i class="fa-solid fa-xmark"></i></a>
+    </div>
     <div class="logo">
         <img src="/images/carbon-logo.png" alt="Logo">
     </div>
