@@ -1,0 +1,180 @@
+<%- include('../includes/header') %>
+    <title>Attendance Details</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="user-listing">
+                <h1>Attendance Details</h1>
+                <div class="filters-container">
+                    <input type="text" id="datepicker">
+                    <select id="branchDropdown">
+                        <option value="all">All Branches</option>
+                    </select>
+                    <button type="submit" id="filterButton">Filter</button>
+                </div>
+                <div id="attendanceTableDetails">
+                    <table class="attendance-table" id="attendanceTable">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>User Name</th>
+                                <th>Package Name</th>
+                                <th>Branch Name</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% attendanceDetails.forEach(attendance => { %>
+                                <tr>
+                                    <td><%= attendance.user_id %></td>
+                                    <td><%= attendance.user_name %></td>
+                                    <td><%= attendance.package_name %></td>
+                                    <td><%= attendance.branch_name %></td>
+                                    <td><%= attendance.timestamp %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Loader -->
+        <div class="loader" id="loader"></div>
+
+        <!-- Screen fade -->
+        <div class="screen-fade" id="screenFade"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <!-- <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script> -->
+    <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Function to fetch available branches
+            function getAvailableBranches() {
+                    return new Promise((resolve, reject) => {
+                        $.ajax({
+                            url: '/attendanceDetails/all/availableBranches',
+                            method: 'GET',
+                            success: function (data) {
+                                resolve(data);
+                            },
+                            error: function (error) {
+                                reject(error);
+                            }
+                        });
+                    });
+                }
+
+                // Function to populate the branch dropdown dynamically
+                function populateBranchDropdown() {
+                    getAvailableBranches()
+                        .then(data => {
+                            const branchDropdown = $('#branchDropdown');
+                            
+                            // Clear existing options
+                            branchDropdown.empty();
+
+                            // Add the default "All Branches" option
+                            branchDropdown.append($('<option>', {
+                                value: 'all',
+                                text: 'All Branches'
+                            }));
+
+                            // Populate the dropdown with available branches
+                            data.forEach(branchObj => {
+                                // Extract the branch name from each object
+                                const branch = branchObj.branch_name;
+                                branchDropdown.append($('<option>', {
+                                    value: branch,
+                                    text: branch
+                                }));
+                            });
+                        })
+                        .catch(error => console.error('Error fetching available branches:', error));
+                }
+
+            // Call the function to populate the branch dropdown on page load
+            populateBranchDropdown();
+
+            /////////////////////////////////////////
+            // Initialize the datepicker with the desired format
+            $('#datepicker').datepicker({
+                todayHighlight: true,
+                format: 'dd-mm-yyyy',
+                autoclose: true
+            });
+
+           // Event listener for filter button click
+            $('#filterButton').on('click', function() {
+                filterData();
+            });
+
+            // Function to show loader and screen fade
+            function showLoader() {
+                $('#loader').show();
+                $('#screenFade').show();
+            }
+
+            // Function to hide loader and screen fade
+            function hideLoader() {
+                $('#loader').hide();
+                $('#screenFade').hide();
+            }
+
+            // Event listener for filter button click
+            $('#filterButton').on('click', function() {
+                showLoader(); // Show loader and screen fade
+                filterData(); // Filter data
+            });
+
+            // Function to filter data based on selected date and branch
+            function filterData() {
+                const date = $('#datepicker').val();
+                const branch = $('#branchDropdown').val();
+
+                // Make an AJAX request to fetch filtered data
+                $.ajax({
+                    url: `/attendanceDetails/all/attendanceDetails`,
+                    method: 'GET',
+                    data: {
+                        date: date,
+                        branch: branch
+                    },
+                    success: function(data) {
+                        hideLoader(); // Hide loader and screen fade
+                        updateTable(data); // Update the table with filtered data
+                    },
+                    error: function(error) {
+                        hideLoader(); // Hide loader and screen fade in case of error
+                        console.error('Error fetching filtered data:', error);
+                    }
+                });
+            }
+
+            // Function to update the table with filtered data
+            function updateTable(data) {
+                const tableBody = $('#attendanceTable tbody');
+                tableBody.empty(); // Clear existing table rows
+
+                data.forEach(attendance => {
+                    tableBody.append(`
+                        <tr>
+                            <td>${attendance.user_id}</td>
+                            <td>${attendance.user_name}</td>
+                            <td>${attendance.package_name}</td>
+                            <td>${attendance.branch_name}</td>
+                            <td>${attendance.timestamp}</td>
+                        </tr>
+                    `);
+                });
+            }
+        });
+    </script>
+   
+</body>
+</html>
