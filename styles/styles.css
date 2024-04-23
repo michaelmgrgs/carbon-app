@@ -806,6 +806,19 @@ button {
   color: #ddd;
 }
 
+.attendance-view input {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  outline: none;
+}
+.attendance-view button {
+  background-color: #4d1d1f;
+  padding: 9px 20px;
+}
+.attendance-view div {
+  margin-left: 12px;
+}
+
 /* Loader animation */
 @keyframes spin {
   0% {

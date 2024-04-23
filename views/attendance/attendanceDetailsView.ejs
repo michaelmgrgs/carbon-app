@@ -8,12 +8,18 @@
         <div class="content-container">
             <div class="user-listing">
                 <h1>Attendance Details</h1>
-                <div class="filters-container">
-                    <input type="text" id="datepicker">
-                    <select id="branchDropdown">
-                        <option value="all">All Branches</option>
-                    </select>
-                    <button type="submit" id="filterButton">Filter</button>
+                <div class="filters-container attendance-view">
+                    <div>
+                        <input type="text" id="datepicker">
+                    </div>
+                    <div>
+                        <select id="branchDropdown">
+                            <option value="all">All Branches</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit" id="filterButton">Filter</button>
+                    </div>
                 </div>
                 <div id="attendanceTableDetails">
                     <table class="attendance-table" id="attendanceTable">
