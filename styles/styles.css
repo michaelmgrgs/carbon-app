@@ -819,6 +819,15 @@ button {
   margin-left: 12px;
 }
 
+.edit-package-view .input-field {
+  width: 130px !important;
+  margin-bottom: 0;
+}
+.edit-package-view .submit-btn {
+  background-color: #4d1d1f;
+  padding: 7px 15px;
+}
+
 /* Loader animation */
 @keyframes spin {
   0% {

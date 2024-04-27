@@ -141,4 +141,26 @@ router.delete('/delete/:userId', async (req, res) => {
     }
 });
 
+
+// Delete package
+router.delete('/delete/:userId/:subscriptionId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const subscriptionId = req.params.subscriptionId;
+
+        // Delete the subscription from the database
+        const deleteQuery = `
+            DELETE FROM user_subscriptions 
+            WHERE subscription_id = $1 AND user_id = $2
+        `;
+        await pool.query(deleteQuery, [subscriptionId, userId]);
+
+        res.status(200).send('Subscription deleted successfully');
+    } catch (error) {
+        console.error('Error deleting subscription:', error);
+        res.status(500).send('Internal server error');
+    }
+});
+
+
 module.exports = router;

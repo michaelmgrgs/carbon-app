@@ -1,0 +1,90 @@
+<%- include('../includes/header') %>
+    <title>User Details</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="user-details edit-package-view">
+                <h1>User Details</h1>
+
+                <div>
+                    <label>User ID:</label>
+                    <span><%= user.id %></span>
+                </div>
+
+                <div>
+                    <label>User Name:</label>
+                    <span><%= user.first_name %></span>
+                    <span><%= user.last_name %></span>
+                </div>
+
+                <!-- Display Active Packages -->
+                <h2>Active Package</h2>
+                <table>
+                    <tr>
+                        <th>Package Name</th>
+                        <th>Branch</th>
+                        <th>Sessions Left</th>
+                        <th>Start Date</th>
+                        <th>End Date</th>
+                        <th>Payment Method</th>
+                        <th>Action</th>
+                    </tr>
+                    <% if (user.activePackages && user.activePackages.length > 0) { %>
+                        <% user.activePackages.forEach(package => { %>
+                            <tr>
+                                <td><%= package.name %></td>
+                                <td><%= package.branch_name %></td>
+                                <form id="updateForm_<%= package.subscription_id %>" action= "/users/editPackage/update/<%= user.id %>/<%= package.subscription_id %>/<%= branchName %>?branch=<%= branchName %>" method="POST">
+                                    <td><input class="input-field" type="text" name="sessions_left" value="<%= package.sessions_left %>" /></td>
+                                    <td><input class="input-field" type="text" id="datepickerFrom" name="start_date" value="<%= moment(package.start_date).format('DD-MM-YYYY') %>" /></td>
+                                    <td><input class="input-field" type="text" id="datepickerTo" name="end_date" value="<%= moment(package.end_date).format('DD-MM-YYYY') %>" /></td>
+                                    <td>
+                                        <select class="input-field" id="paymentMethod_<%= package.package_id %>" name="payment_method">
+                                            <option value="Cash" <%= package.payment_method === 'Cash' ? 'selected' : '' %>>Cash</option>
+                                            <option value="Visa" <%= package.payment_method === 'Visa' ? 'selected' : '' %>>Visa</option>
+                                            <option value="Instapay" <%= package.payment_method === 'Instapay' ? 'selected' : '' %>>Instapay</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button class="submit-btn" type="submit">Update</button>
+                                    </td>
+                                </form>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <p>No active packages</p>
+                    <% } %>
+                </table>
+
+
+                <div class="action-links">
+                    <a href="/users/listing/view/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" title="Back to Listing"><i class="fa-solid fa-circle-arrow-left"></i></a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+    
+    <script>
+        $('#datepickerFrom').datepicker({
+            todayHighlight: true,
+            format: 'dd-mm-yyyy',
+            autoclose: true
+        });
+
+        $('#datepickerTo').datepicker({
+            todayHighlight: true,
+            format: 'dd-mm-yyyy',
+            autoclose: true
+        });
+
+    </script>
+</body>
+</html>

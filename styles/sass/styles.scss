@@ -885,6 +885,17 @@ button{
     }
 }
 
+.edit-package-view{
+    .input-field{
+        width: 130px !important;
+        margin-bottom: 0;
+    }
+    .submit-btn{
+        background-color: $dark-red;
+        padding: 7px 15px;
+    }
+}
+
 /* Loader animation */
 @keyframes spin {
     0% { transform: rotate(0deg); }
