@@ -839,7 +839,7 @@ button {
 }
 @media only screen and (max-width: 767px) {
   .content-container {
-    overflow-y: visible;
+    display: block;
   }
   .title-logo-con .form-title {
     font-size: 22px;
@@ -864,6 +864,8 @@ button {
   }
   .side-nav.open {
     left: 0;
+    height: 100vh;
+    min-height: 825px;
   }
   .side-nav .close-icon-mob {
     display: block;
@@ -877,6 +879,8 @@ button {
   }
   .main-container {
     display: block;
+    position: relative;
+    height: 100%;
   }
   .side-nav-mobile {
     display: block;
@@ -888,6 +892,10 @@ button {
   }
   .side-nav-mobile i {
     color: #4d1d1f;
+  }
+  .attendance-container {
+    display: block;
+    min-width: auto;
   }
 }
 

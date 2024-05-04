@@ -905,7 +905,7 @@ button{
 
 @media only screen and (max-width: 767px) {
     .content-container{
-        overflow-y: visible;
+        display: block;
     }
     .title-logo-con{
         .form-title{
@@ -935,6 +935,8 @@ button{
         z-index: 1;
         &.open{
             left: 0;
+            height: 100vh;
+            min-height: 825px;
         }
         .close-icon-mob{
             display: block;
@@ -950,6 +952,8 @@ button{
 
     .main-container{
         display: block;
+        position: relative;
+        height: 100%;
     }
 
     .side-nav-mobile{
@@ -962,5 +966,9 @@ button{
         i{
             color: $dark-red;
         }
+    }
+    .attendance-container{
+        display: block;
+        min-width: auto;
     }
 }
