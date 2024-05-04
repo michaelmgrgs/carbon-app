@@ -55,7 +55,7 @@ async function getAttendanceDetailsByBranchAndDate(branch, date) {
         // Format the timestamp in the result before returning
         const formattedResult = result.rows.map(row => ({
             ...row,
-            timestamp: moment(row.timestamp).add(2, 'hours').format('DD-MM-YYYY, h:mma')
+            timestamp: moment(row.timestamp).add(3, 'hours').format('DD-MM-YYYY, h:mma')
         }));
 
         return formattedResult;
