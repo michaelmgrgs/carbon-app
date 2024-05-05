@@ -82,7 +82,7 @@ router.post('/branch/:branchName', async (req, res) => {
             const endDate = moment(startDateForDB).add(validityPeriod, 'days').toDate();
 
             // Apply discount
-            const discountedPrice = price - discount;
+            const discountedPrice = price - (discount || 0);
 
             // Insert the subscription data into the user_subscription table
             const insertSubscriptionQuery = `
@@ -90,7 +90,7 @@ router.post('/branch/:branchName', async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             `;
 
-            await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount, paymentMethod, discount]);
+            await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount, paymentMethod, discount || 0]);
 
             // Render the view and pass endDate as a local variable
             res.render(`subscriptions/subscriptionsView`, { branchName, branchPackages, endDate, validityPeriod, successMessage, loggedInUser });
