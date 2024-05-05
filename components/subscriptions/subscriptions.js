@@ -55,11 +55,12 @@ router.get('/branch/:branchName', authenticate, checkRole(['superadmin', 'admin'
 });
 
 
+// Handler for submitting the subscription form
 router.post('/branch/:branchName', async (req, res) => {
     try {
         const branchName = req.params.branchName;
         // Extract data from the form submission
-        const { userId, userName, packageId, startDate, paymentMethod } = req.body;
+        const { userId, userName, packageId, startDate, paymentMethod, discount } = req.body;
         const loggedInUser = req.session.user;
 
         // Fetch packages from the database
@@ -71,23 +72,25 @@ router.post('/branch/:branchName', async (req, res) => {
         const startDateForDB = moment(startDate, 'DD-MM-YYYY').format('YYYY-MM-DD');
 
         // Fetch the session_count and validity_period of the selected gym package
-        const packageDetailsQuery = 'SELECT session_count, validity_period FROM gym_packages WHERE package_id = $1';
+        const packageDetailsQuery = 'SELECT session_count, validity_period, price FROM gym_packages WHERE package_id = $1';
         const packageDetailsResult = await pool.query(packageDetailsQuery, [packageId]);
 
         if (packageDetailsResult.rows.length > 0) {
-            const sessionsCount = packageDetailsResult.rows[0].session_count;
-            const validityPeriod = packageDetailsResult.rows[0].validity_period;
+            const { session_count: sessionsCount, validity_period: validityPeriod, price } = packageDetailsResult.rows[0];
 
             // Calculate the end date
             const endDate = moment(startDateForDB).add(validityPeriod, 'days').toDate();
 
+            // Apply discount
+            const discountedPrice = price - discount;
+
             // Insert the subscription data into the user_subscription table
             const insertSubscriptionQuery = `
-                INSERT INTO user_subscriptions (user_id, user_name, package_id, start_date, end_date, branch_name, sessions_left, payment_method)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO user_subscriptions (user_id, user_name, package_id, start_date, end_date, branch_name, sessions_left, payment_method, discount)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             `;
 
-            await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount, paymentMethod]);
+            await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount, paymentMethod, discount]);
 
             // Render the view and pass endDate as a local variable
             res.render(`subscriptions/subscriptionsView`, { branchName, branchPackages, endDate, validityPeriod, successMessage, loggedInUser });

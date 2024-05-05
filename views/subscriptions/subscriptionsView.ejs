@@ -1,3 +1,4 @@
+<!-- Display the subscription form for a branch -->
 <%- include('../includes/header') %>
     <title><%= branchName %> Branch Subscription</title>
 </head>
@@ -20,11 +21,22 @@
                         <label for="packageId">Selected Package:</label>
                         <select id="selectedPackage" name="packageId" required>
                             <% branchPackages.forEach(package => { %>
-                                <option value="<%= package.package_id %>" data-validity="<%= package.validity_period %>" data-sessions_count="<%= package.session_count %>">
+                                <option value="<%= package.package_id %>" data-validity="<%= package.validity_period %>" data-sessions_count="<%= package.session_count %>" data-price="<%= package.price %>">
                                     <%= package.name %> - <%= package.price %> EGP
                                 </option>
                             <% }); %>
                         </select>
+                    </div>
+                    
+                    <!-- Add a discount field -->
+                    <div>
+                        <label for="discount">Discount (%):</label>
+                        <input type="number" id="discount" name="discount" min="0" step="any">
+                    </div>
+
+                    <div>
+                        <!-- Display the price of the selected package -->
+                        <p id="packagePriceDisplay">Price: <%= branchPackages[0].price %> EGP</p>
                     </div>
                     
                     <div>
@@ -160,21 +172,28 @@
             const startDateInput = $('#startDate');
             const endDateDisplay = $('#endDateDisplay');
             const endDateInput = $('#endDate');
-            // const sessionsCountDisplay = $('#sessionsCount');
+            const packagePriceDisplay = $('#packagePriceDisplay'); // Add this line
 
             // Initial update based on the selected package when the page loads
             updateValidityPeriod();
             updateEndDate();
+            updatePackagePrice(); // Add this line
 
             packageDropdown.on('change', function () {
                 // Update validity period when a different package is selected
                 updateValidityPeriod();
                 updateEndDate();
+                updatePackagePrice(); // Add this line
             });
 
             startDateInput.on('change', function () {
                 // Update end date when the start date changes
                 updateEndDate();
+            });
+
+            // Add a listener for the discount field
+            $('#discount').on('input', function () {
+                updatePackagePrice(); // Update package price when discount changes
             });
 
             function updateValidityPeriod() {
@@ -207,6 +226,19 @@
                 const endDateFormatted = endDateMoment.format('DD-MM-YYYY');
 
                 endDateInput.val(endDateFormatted);
+            }
+
+            // Function to update package price
+            function updatePackagePrice() {
+                const selectedPackage = packageDropdown.find('option:selected');
+                const price = selectedPackage.data('price');
+                const discountPercentage = parseFloat($('#discount').val()) || 0; // Get discount percentage value
+
+                // Calculate discounted price based on percentage
+                const discountedPrice = price - (price * discountPercentage / 100);
+
+                // Update package price display
+                packagePriceDisplay.html(`<b>Price: ${discountedPrice.toFixed(2)} EGP</b>`);
             }
 
             // Initialize the Bootstrap datepicker

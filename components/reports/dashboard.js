@@ -350,7 +350,7 @@ async function getTotalIncome(branch, year, month) {
         TO_CHAR(us.start_date, 'Mon') AS month,
         EXTRACT(YEAR FROM us.start_date) AS year,
         COALESCE(us.branch_name, 'All Branches') AS branch_name,
-        SUM(gp.price) AS total_income
+        SUM(gp.price * (1 - COALESCE(us.discount, 0) / 100)) AS total_income
     FROM
         user_subscriptions us
     LEFT JOIN
