@@ -40,8 +40,8 @@
                     <label class="form-label" for="password">Password:</label>
                     <input class="form-input" type="password" name="password" required>
 
-                    <label class="form-label" for="age">Age:</label>
-                    <input class="form-input" type="number" name="age" required>
+                    <label class="form-label" for="dateOfBirth">Date of Birth:</label>
+                    <input class="form-input datepicker" type="text" name="dateOfBirth" id="dateOfBirth" autocomplete="off" required>
 
                     <label class="form-label" for="gender">Gender:</label>
                     <select class="form-input" name="gender" required>
@@ -78,5 +78,18 @@
             </div>
         </div>
     </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+
+    <script>
+        // Initialize the Bootstrap datepicker
+        $('.datepicker').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                todayHighlight: true
+            });
+    </script>
 </body>
 </html>

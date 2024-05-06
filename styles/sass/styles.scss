@@ -896,6 +896,14 @@ button{
     }
 }
 
+.datepicker{
+    td{
+        span{
+            margin: 0 15px;
+        }
+    }
+}
+
 /* Loader animation */
 @keyframes spin {
     0% { transform: rotate(0deg); }
