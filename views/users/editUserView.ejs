@@ -33,8 +33,8 @@
                     </div>
 
                     <div>
-                        <label>Age:</label>
-                        <input type="number" name="age" value="<%= user.age %>">
+                        <label>Date of Birth:</label>
+                        <input type="text" class="datepicker" name="date_of_birth" value="<%= user.date_of_birth %>">
                     </div>
 
                     <div>
@@ -69,6 +69,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
     
     <script>
         // Delete User Function
@@ -97,6 +98,13 @@
                 });
             }
         }
+
+        // Initialize the Bootstrap datepicker
+        $('.datepicker').datepicker({
+                format: 'dd-mm-yyyy',
+                autoclose: true,
+                todayHighlight: true
+            });
     </script>
 </body>
 </html>

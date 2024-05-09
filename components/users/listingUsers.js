@@ -46,6 +46,10 @@ router.get('/view/:userId/:branchName', authenticate, checkRole(['superadmin' , 
 
         const user = userResult.rows[0];
 
+        // Format dates
+        user.date_of_birth = moment(user.date_of_birth).format('DD-MM-YYYY'); // Format date of birth
+        // Add formatting for other dates if needed
+
         // Fetch active packages
         const activePackagesQuery = `
             SELECT gp.*, us.*
@@ -90,6 +94,10 @@ router.get('/edit/:userId/:branchName', authenticate, checkRole(['superadmin' , 
 
         const user = userResult.rows[0];
 
+        // Format dates
+        user.date_of_birth = moment(user.date_of_birth).format('DD-MM-YYYY'); // Format date of birth
+        // Add formatting for other dates if needed
+
         // Render the edit page with user details
         res.render('users/editUserView', { user, loggedInUser, branchName });
     } catch (error) {
@@ -106,15 +114,18 @@ router.post('/update/:userId/:branchName', async (req, res) => {
         const userId = req.params.userId;
 
         // Retrieve updated user details from the form submission
-        const { first_name, last_name, phone_number, email, age, gender, residential_area } = req.body;
+        const { first_name, last_name, phone_number, email, date_of_birth, gender, residential_area } = req.body;
+
+        // Format date of birth using moment.js
+        const formattedDateOfBirth = moment(date_of_birth, 'DD-MM-YYYY').format('YYYY-MM-DD');
 
         // Update user details in the database
         const updateQuery = `
             UPDATE users
-            SET first_name = $2, last_name = $3, phone_number = $4, email = $5, age = $6, gender = $7, residential_area = $8
+            SET first_name = $2, last_name = $3, phone_number = $4, email = $5, date_of_birth = $6, gender = $7, residential_area = $8
             WHERE id = $1
         `;
-        await pool.query(updateQuery, [userId, first_name, last_name, phone_number, email, age, gender, residential_area]);
+        await pool.query(updateQuery, [userId, first_name, last_name, phone_number, email, formattedDateOfBirth, gender, residential_area]);
 
         // Redirect to the user details page after updating
         res.redirect(`/users/listing/view/${userId}/${branchName}?branch=${branchName}`);
