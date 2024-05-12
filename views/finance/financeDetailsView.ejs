@@ -1,0 +1,187 @@
+<%- include('../includes/header') %>
+<title>Finance Details</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="user-listing">
+                <h1>Finance Details</h1>
+                <div class="filters-container finance-view">
+                    <div>
+                        <input type="month" id="monthPicker">
+                    </div>
+                    <div>
+                        <select id="branchDropdown">
+                            <option value="all">All Branches</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button type="button" id="filterButton">Filter</button>
+                    </div>
+                </div>
+                <div id="financeTableDetails">
+                    <table class="finance-table" id="financeTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>User ID</th>
+                                <th>User Name</th>
+                                <th>Payment Method</th>
+                                <th>Amount</th>
+                                <th>Discount</th>
+                                <th>Start Date</th>
+                                <th>Package Name</th>
+                                <th>Branch</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% financeDetails.forEach(finance => { %>
+                                <tr>
+                                    <td><%= index + 1 %></td>
+                                    <td><%= finance.user_id %></td>
+                                    <td><%= finance.user_name %></td>
+                                    <td><%= finance.transaction_type %></td>
+                                    <td><%= finance.price %></td>
+                                    <td><%= finance.discount %></td>
+                                    <td><%= finance.start_date %></td>
+                                    <td><%= finance.package_name %></td>
+                                    <td><%= finance.branch_name %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Loader -->
+        <div class="loader" id="loader"></div>
+
+        <!-- Screen fade -->
+        <div class="screen-fade" id="screenFade"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="/node_modules/bootstrap-datepicker/dist/js/bootstrap-datepicker.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Function to fetch available branches
+            function getAvailableBranches() {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: '/finance/all/availableBranches',
+                        method: 'GET',
+                        success: function (data) {
+                            resolve(data);
+                        },
+                        error: function (error) {
+                            reject(error);
+                        }
+                    });
+                });
+            }
+
+            // Function to populate the branch dropdown dynamically
+            function populateBranchDropdown() {
+                getAvailableBranches()
+                    .then(data => {
+                        const branchDropdown = $('#branchDropdown');
+                        
+                        // Clear existing options
+                        branchDropdown.empty();
+
+                        // Add the default "All Branches" option
+                        branchDropdown.append($('<option>', {
+                            value: 'all',
+                            text: 'All Branches'
+                        }));
+
+                        // Populate the dropdown with available branches
+                        data.forEach(branchObj => {
+                            // Extract the branch name from each object
+                            const branch = branchObj.branch_name;
+                            branchDropdown.append($('<option>', {
+                                value: branch,
+                                text: branch
+                            }));
+                        });
+                    })
+                    .catch(error => console.error('Error fetching available branches:', error));
+            }
+
+            // Call the function to populate the branch dropdown on page load
+            populateBranchDropdown();
+
+            /////////////////////////////////////////
+            // Event listener for filter button click
+            $('#filterButton').on('click', function() {
+                showLoader(); // Show loader and screen fade
+                filterData(); // Filter data
+            });
+
+            $('#monthPicker').on('change', function() {
+                showLoader(); // Show loader and screen fade
+                filterData(); // Filter data
+            });
+
+            function showLoader() {
+                $('#loader').show();
+                $('#screenFade').show();
+            }
+
+            function hideLoader() {
+                $('#loader').hide();
+                $('#screenFade').hide();
+            }
+
+            function filterData() {
+                const monthYear = $('#monthPicker').val();
+                const branch = $('#branchDropdown').val();
+
+                // Make an AJAX request to fetch filtered data
+                $.ajax({
+                    url: `/finance/all/financeDetails`,
+                    method: 'GET',
+                    data: {
+                        monthYear: monthYear,
+                        branch: branch
+                    },
+                    success: function(data) {
+                        hideLoader(); // Hide loader and screen fade
+                        updateTable(data); // Update the table with filtered data
+                    },
+                    error: function(error) {
+                        hideLoader(); // Hide loader and screen fade in case of error
+                        console.error('Error fetching filtered data:', error);
+                    }
+                });
+            }
+
+            function updateTable(data) {
+                const tableBody = $('#financeTable tbody');
+                tableBody.empty(); // Clear existing table rows
+
+                data.forEach((finance, index) => {
+                    const sequenceNumber = index + 1;
+                    tableBody.append(`
+                        <tr>
+                            <td>${sequenceNumber}</td>
+                            <td>${finance.user_id}</td>
+                            <td>${finance.user_name}</td>
+                            <td>${finance.payment_method}</td>
+                            <td>${finance.price}</td>
+                            <td>${finance.discount}</td>
+                            <td>${finance.start_date}</td>
+                            <td>${finance.package_name}</td>
+                            <td>${finance.branch_name}</td>
+                        </tr>
+                    `);
+                });
+            }
+        });
+    </script>
+   
+</body>
+</html>

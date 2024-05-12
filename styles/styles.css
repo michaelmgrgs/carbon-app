@@ -806,16 +806,16 @@ button {
   color: #ddd;
 }
 
-.attendance-view input {
+.attendance-view input, .finance-view input {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   z-index: 1;
   outline: none;
 }
-.attendance-view button {
+.attendance-view button, .finance-view button {
   background-color: #4d1d1f;
   padding: 9px 20px;
 }
-.attendance-view div {
+.attendance-view div, .finance-view div {
   margin-left: 12px;
 }
 
