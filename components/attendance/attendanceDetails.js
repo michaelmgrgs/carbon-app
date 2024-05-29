@@ -22,7 +22,7 @@ router.get('/:branchName', authenticate, checkRole(['superadmin', 'admin']),  as
 async function getAttendanceDetailsByBranchAndDate(branch, date) {
     try {
         let query = `
-            SELECT
+            SELECT DISTINCT
                 A.attendance_id,
                 A.user_id,
                 U.user_name,
@@ -51,7 +51,12 @@ async function getAttendanceDetailsByBranchAndDate(branch, date) {
             ORDER BY
                 A.timestamp DESC;`;
 
+        // Log the query and values for debugging
+        console.log('Executing query:', query);
+        console.log('With values:', values);
+
         const result = await pool.query(query, values);
+
         // Format the timestamp in the result before returning
         const formattedResult = result.rows.map(row => ({
             ...row,
