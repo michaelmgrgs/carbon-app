@@ -29,6 +29,8 @@
                         </select>
                     </div>
 
+                    <input type="hidden" id="subscriptionId" name="subscriptionId" />
+
                     <button type="button" onclick="attend()">Attend</button>
                 </form>
 
@@ -66,6 +68,7 @@
             const userSearchInput = $('#userSearch');
             const activePackagesContainer = $('#activePackages');
             const selectedPackageDropdown = $('#selectedPackage');
+            const subscriptionIdInput = $('#subscriptionId');
             const messageContainer = $('#message-container');
             const messageText = $('#message');
 
@@ -78,7 +81,7 @@
                             const userMap = new Map();
 
                             users.forEach(user => {
-                                const { user_id, user_name, package_id, sessions_left, end_date, branch_name, name } = user;
+                                const { user_id, user_name, package_id, sessions_left, end_date, branch_name, subscription_id, name } = user;
 
                                 if (!userMap.has(user_name)) {
                                     userMap.set(user_name, {
@@ -93,6 +96,7 @@
                                     sessions_left,
                                     end_date,
                                     branch_name,
+                                    subscription_id,
                                     name
                                 });
                             });
@@ -131,10 +135,13 @@
                                 `);
 
                                 selectedPackageDropdown.html(activePackagesFiltered.map(package => `
-                                    <option value="${package.package_id}">
+                                    <option value="${package.package_id}" data-subscription-id="${package.subscription_id}">
                                         ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
                                     </option>
                                 `).join(''));
+
+                                // Set the subscription ID of the first package by default
+                                subscriptionIdInput.val(activePackagesFiltered[0].subscription_id);
                             } else {
                                 activePackagesContainer.html('<p>No active packages available.</p>');
                                 selectedPackageDropdown.html('');
@@ -147,40 +154,58 @@
                 }
             });
 
+            // Update the subscription ID when a package is selected
+            selectedPackageDropdown.change(function () {
+                const selectedOption = $(this).find('option:selected');
+                const subscriptionId = selectedOption.data('subscription-id');
+                subscriptionIdInput.val(subscriptionId);
+            });
+
             window.attend = function () {
                 const selectedUserId = userSearchInput.val();
                 const selectedPackageId = selectedPackageDropdown.val();
+                const subscriptionId = subscriptionIdInput.val();
 
-                console.log('Payload:', { userId: selectedUserId, packageId: selectedPackageId });
+                // console.log('Payload:', { userId: selectedUserId, packageId: selectedPackageId, subscriptionId: subscriptionId });
 
-                    axios.post(`/attendance/<%= branchName %>?branch=<%= branchName %>`, {
-                        userId: selectedUserId,
-                        packageId: selectedPackageId,
-                    })
-                    .then(response => {
-                        const { success, message, userInfo } = response.data;
+                axios.post(`/attendance/<%= branchName %>`, {
+                    userId: selectedUserId,
+                    packageId: selectedPackageId,
+                    subscriptionId: subscriptionId
+                })
+                .then(response => {
+                    const { success, message, userInfo } = response.data;
 
-                        messageText.text(message);
-                        messageContainer.removeClass('hidden');
-                        messageContainer.removeClass('error');
-                        messageContainer.removeClass('success');
+                    messageText.text(message);
+                    messageContainer.removeClass('hidden');
+                    messageContainer.removeClass('error');
+                    messageContainer.removeClass('success');
 
-                        setMessage(message, success ? 'success' : 'error');
+                    setMessage(message, success ? 'success' : 'error');
 
-                        if (success) {
-                            messageContainer.addClass('success');
-                        } else {
-                            messageContainer.addClass('error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error attending:', error);
-                    });
+                    if (success) {
+                        messageContainer.addClass('success');
+                        animateMessage();
+                    } else {
+                        messageContainer.addClass('error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error attending:', error);
+                });
             };
 
             function setMessage(text, className) {
                 messageText.text(text);
                 messageContainer.removeClass('hidden').removeClass('success').removeClass('error').addClass(className);
+            }
+
+            function animateMessage() {
+                // Toggle 'shake' class to trigger CSS animation
+                messageContainer.addClass('shake');
+                setTimeout(() => {
+                    messageContainer.removeClass('shake');
+                }, 500); // Duration should match CSS animation duration
             }
         });
 
@@ -195,10 +220,14 @@
 
                 if (activePackagesFiltered.length > 0) {
                     selectedPackageDropdown.innerHTML = activePackagesFiltered.map(package => `
-                        <option value="${package.package_id}">
+                        <option value="${package.package_id}" data-subscription-id="${package.subscription_id}">
                             ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
                         </option>
                     `).join('');
+
+                    // Set the subscription ID of the first package by default
+                    const subscriptionIdInput = document.getElementById('subscriptionId');
+                    subscriptionIdInput.value = activePackagesFiltered[0].subscription_id;
                 } else {
                     selectedPackageDropdown.innerHTML = '<option value="" disabled>No active packages available</option>';
                 }
