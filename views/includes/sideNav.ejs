@@ -77,7 +77,7 @@
     <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
         <div class="super-links">
             <ul>
-                <li><a href="/reports/dashboard/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                <!-- <li><a href="/reports/dashboard/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li> -->
                 <li><a href="/packages/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Packages</a>
                     <ul>
                         <li><a href="/packages/create/<%= branchName %>?branch=<%= branchName %>">Create Packages</a></li>
