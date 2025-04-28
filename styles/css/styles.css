@@ -72,12 +72,14 @@ h1 {
 }
 
 .side-nav {
-  width: 250px;
+  width: 270px;
   background: linear-gradient(to bottom, #1c1218 25%, #db3c30 75%);
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   align-items: center;
+  overflow: scroll;
+  padding: 30px 0;
 }
 .side-nav .logo {
   text-align: center;
@@ -519,6 +521,31 @@ button {
   padding: 17px;
 }
 
+/* CSS for shake animation */
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  10%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 80% {
+    transform: translateX(5px);
+  }
+  30%, 50%, 70% {
+    transform: translateX(-5px);
+  }
+  40%, 60% {
+    transform: translateX(5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
 .home-container {
   display: flex;
   flex-direction: column;
@@ -806,16 +833,16 @@ button {
   color: #ddd;
 }
 
-.attendance-view input {
+.attendance-view input, .finance-view input {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   z-index: 1;
   outline: none;
 }
-.attendance-view button {
+.attendance-view button, .finance-view button {
   background-color: #4d1d1f;
   padding: 9px 20px;
 }
-.attendance-view div {
+.attendance-view div, .finance-view div {
   margin-left: 12px;
 }
 

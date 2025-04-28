@@ -1,0 +1,621 @@
+<!-- Display Coach Management -->
+<%- include('../includes/header') %>
+    <title>Coaches Attendance</title>
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+        <div class="content-container">
+            <div class="container mt-4">
+                <h1>Coaches Attendance</h1>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h5 class="mb-0">Attendance Tracking</h5>
+                            </div>
+                            <div class="col-md-6">
+                                <form id="filterForm" class="d-flex justify-content-end">
+                                    <div class="me-2">
+                                        <input type="date" class="form-control" id="date" name="date" value="<%= selectedDate %>">
+                                    </div>
+                                    <div class="me-2">
+                                        <select class="form-select" id="branch" name="branch">
+                                            <option value="all" <%= selectedBranch === 'all' ? 'selected' : '' %>>All Branches</option>
+                                            <% branches.forEach(branch => { %>
+                                                <option value="<%= branch.branch_name %>" <%= selectedBranch === branch.branch_name ? 'selected' : '' %>>
+                                                    <%= branch.branch_name %>
+                                                </option>
+                                            <% }); %>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Filter</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="mb-3">Today's Schedule (<%= dayOfWeek %>)</h5>
+                        
+                        <% if (scheduledClasses.length === 0) { %>
+                            <p class="text-center">No classes scheduled for today at <%= selectedBranch === 'all' ? 'any branch' : selectedBranch %>.</p>
+                        <% } else { %>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Coach</th>
+                                            <th>Branch</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% scheduledClasses.forEach(classItem => { %>
+                                            <tr>
+                                                <td><%= classItem.start_time.substring(0, 5) %> - <%= classItem.end_time.substring(0, 5) %></td>
+                                                <td><%= classItem.first_name %> <%= classItem.last_name %></td>
+                                                <td><%= classItem.branch_name %></td>
+                                                <td class="d-flex flex-wrap gap-2">
+                                                    <button class="btn btn-sm btn-success check-in-class" 
+                                                            data-coach-id="<%= classItem.coach_id %>"
+                                                            data-coach-name="<%= classItem.first_name %> <%= classItem.last_name %>"
+                                                            data-branch-name="<%= classItem.branch_name %>"
+                                                            data-class-id="<%= classItem.class_id %>"
+                                                            data-class-time="<%= classItem.start_time.substring(0, 5) %> - <%= classItem.end_time.substring(0, 5) %>">
+                                                        Check In
+                                                    </button>
+                                                    <button class="btn btn-sm btn-secondary quick-check-in" 
+                                                            data-coach-id="<%= classItem.coach_id %>"
+                                                            data-class-id="<%= classItem.class_id %>"
+                                                            data-branch-name="<%= classItem.branch_name %>"
+                                                            data-start-time="<%= classItem.start_time %>"
+                                                            data-end-time="<%= classItem.end_time %>">
+                                                        Auto Check
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } %>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Manual Check-In</h5>
+                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#manualCheckInModal">
+                                Check In Coach
+                            </button>
+                        </div>
+                        
+                        <h5 class="mb-3 mt-4">Today's Attendance</h5>
+                        
+                        <% if (attendanceRecords.length === 0) { %>
+                            <p class="text-center">No attendance records for today at <%= selectedBranch === 'all' ? 'any branch' : selectedBranch %>.</p>
+                        <% } else { %>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Coach</th>
+                                            <th>Branch</th>
+                                            <th>Check-In</th>
+                                            <th>Check-Out</th>
+                                            <th>Hours</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% attendanceRecords.forEach(record => { %>
+                                            <tr>
+                                                <td><%= record.first_name %> <%= record.last_name %></td>
+                                                <td><%= record.branch_name %></td>
+                                                <td><%= moment(record.check_in_time).format('HH:mm') %></td>
+                                                <td>
+                                                    <% if (record.check_out_time) { %>
+                                                        <%= moment(record.check_out_time).format('HH:mm') %>
+                                                    <% } else { %>
+                                                        <span class="text-warning">Not checked out</span>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (record.hours_worked) { %>
+                                                        <%= parseFloat(record.hours_worked).toFixed(2) %>
+                                                    <% } else { %>
+                                                        -
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (!record.check_out_time) { %>
+                                                        <button class="btn btn-sm btn-warning check-out" 
+                                                                data-attendance-id="<%= record.attendance_id %>"
+                                                                data-coach-name="<%= record.first_name %> <%= record.last_name %>">
+                                                            Check Out
+                                                        </button>
+                                                    <% } else { %>
+                                                        <button class="btn btn-sm btn-info edit-attendance" 
+                                                                data-attendance-id="<%= record.attendance_id %>"
+                                                                data-coach-id="<%= record.coach_id %>"
+                                                                data-branch-name="<%= record.branch_name %>"
+                                                                data-class-id="<%= record.class_id %>"
+                                                                data-check-in="<%= moment(record.check_in_time).format('YYYY-MM-DDTHH:mm') %>"
+                                                                data-check-out="<%= record.check_out_time ? moment(record.check_out_time).format('YYYY-MM-DDTHH:mm') : '' %>"
+                                                                data-notes="<%= record.notes || '' %>">
+                                                            Edit
+                                                        </button>
+                                                    <% } %>
+                                                    <button class="btn btn-sm btn-danger delete-attendance" 
+                                                            data-attendance-id="<%= record.attendance_id %>"
+                                                            data-coach-name="<%= record.first_name %> <%= record.last_name %>">
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Manual Check-In Modal -->
+            <div class="modal fade" id="manualCheckInModal" tabindex="-1" aria-labelledby="manualCheckInModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="manualCheckInModalLabel">Manual Coach Check-In</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="manualCheckInForm">
+                                <div class="mb-3">
+                                    <label for="coach_id" class="form-label">Coach</label>
+                                    <select class="form-select" id="coach_id" name="coach_id" required>
+                                        <option value="">Select Coach</option>
+                                        <% coaches.forEach(coach => { %>
+                                            <option value="<%= coach.coach_id %>"><%= coach.first_name %> <%= coach.last_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="branch_name" class="form-label">Branch</label>
+                                    <select class="form-select" id="branch_name" name="branch_name" required>
+                                        <option value="">Select Branch</option>
+                                        <% branches.forEach(branch => { %>
+                                            <option value="<%= branch.branch_name %>"><%= branch.branch_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="check_in_time" class="form-label">Check-In Time</label>
+                                    <input type="datetime-local" class="form-control" id="check_in_time" name="check_in_time" 
+                                        value="<%= moment().format('YYYY-MM-DDTHH:mm') %>">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveCheckInBtn">Check In</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Check-Out Modal -->
+            <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="checkOutModalLabel">Coach Check-Out</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="checkOutForm">
+                                <input type="hidden" id="checkout_attendance_id" name="attendance_id">
+                                
+                                <p>Checking out: <strong id="checkout_coach_name"></strong></p>
+                                
+                                <div class="mb-3">
+                                    <label for="check_out_time" class="form-label">Check-Out Time</label>
+                                    <input type="datetime-local" class="form-control" id="check_out_time" name="check_out_time" 
+                                        value="<%= moment().format('YYYY-MM-DDTHH:mm') %>">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="checkout_notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="checkout_notes" name="notes" rows="3"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveCheckOutBtn">Check Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Edit Attendance Modal -->
+            <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-labelledby="editAttendanceModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editAttendanceModalLabel">Edit Attendance Record</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editAttendanceForm">
+                                <input type="hidden" id="edit_attendance_id" name="attendance_id">
+                                
+                                <div class="mb-3">
+                                    <label for="edit_coach_id" class="form-label">Coach</label>
+                                    <select class="form-select" id="edit_coach_id" name="coach_id" required>
+                                        <option value="">Select Coach</option>
+                                        <% coaches.forEach(coach => { %>
+                                            <option value="<%= coach.coach_id %>"><%= coach.first_name %> <%= coach.last_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="edit_branch_name" class="form-label">Branch</label>
+                                    <select class="form-select" id="edit_branch_name" name="branch_name" required>
+                                        <option value="">Select Branch</option>
+                                        <% branches.forEach(branch => { %>
+                                            <option value="<%= branch.branch_name %>"><%= branch.branch_name %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+            
+                                <div class="mb-3">
+                                    <label for="edit_check_in_time" class="form-label">Check-In Time</label>
+                                    <input type="datetime-local" class="form-control" id="edit_check_in_time" name="check_in_time" required>
+                                </div>
+            
+                                <div class="mb-3">
+                                    <label for="edit_check_out_time" class="form-label">Check-Out Time</label>
+                                    <input type="datetime-local" class="form-control" id="edit_check_out_time" name="check_out_time">
+                                </div>
+            
+                                <div class="mb-3">
+                                    <label for="edit_notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveEditAttendanceBtn">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Add this hidden span to keep branchName accessible in JS -->
+    <span id="pageMeta" data-branch-name="<%= branchName %>"></span>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+        const branchName = document.getElementById('pageMeta')?.getAttribute('data-branch-name');
+
+            // Filter form override
+            document.getElementById('filterForm')?.addEventListener('submit', function (e) {
+                e.preventDefault(); // Stop default submission
+
+                const date = document.getElementById('date').value;
+                const branch = document.getElementById('branch').value;
+
+                const pathBranch = branch === 'all' ? 'all' : branch;
+                window.location.href = `/coaches/attendance/${pathBranch}?date=${date}`;
+            });
+
+            // Handle check-in
+            document.querySelectorAll('.check-in-class').forEach(button => {
+                button.addEventListener('click', function () {
+                    const coachId = this.dataset.coachId;
+                    const classId = this.dataset.classId;
+
+                    fetch(`/coaches/attendance/${branchName}/check-in`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coach_id: coachId,
+                            class_id: classId,
+                            check_in_time: new Date().toISOString()
+                        })
+                    }).then(res => res.json())
+                    .then(data => {
+                        if (data.success) location.reload();
+                        else alert(data.message);
+                    });
+                });
+            });
+
+            // Handle check-out button click (open modal)
+            document.querySelectorAll('.check-out').forEach(button => {
+                button.addEventListener('click', function () {
+                    document.getElementById('checkout_attendance_id').value = this.dataset.attendanceId;
+                    document.getElementById('checkout_coach_name').textContent = this.dataset.coachName;
+                    const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
+                    modal.show();
+                });
+            });
+
+            // Save check-out
+            document.getElementById('saveCheckOutBtn')?.addEventListener('click', function () {
+                const form = document.getElementById('checkOutForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                const id = data.attendance_id;
+
+                fetch(`/coaches/attendance/${branchName}/check-out/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).then(res => res.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert(data.message);
+                });
+            });
+
+            // Manual Check-In
+            document.getElementById('saveCheckInBtn')?.addEventListener('click', function () {
+                const form = document.getElementById('manualCheckInForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                fetch(`/coaches/attendance/${branchName}/check-in`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).then(res => res.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert(data.message);
+                });
+            });
+
+            // Edit attendance
+            document.querySelectorAll('.edit-attendance').forEach(button => {
+                button.addEventListener('click', function () {
+                    document.getElementById('edit_attendance_id').value = this.dataset.attendanceId;
+                    document.getElementById('edit_coach_id').value = this.dataset.coachId;
+                    document.getElementById('edit_branch_name').value = this.dataset.branchName;
+                    document.getElementById('edit_check_in_time').value = this.dataset.checkIn;
+                    document.getElementById('edit_check_out_time').value = this.dataset.checkOut || '';
+                    document.getElementById('edit_notes').value = this.dataset.notes;
+
+                    const modal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
+                    modal.show();
+                });
+            });
+
+            document.getElementById('saveEditAttendanceBtn')?.addEventListener('click', function () {
+                const form = document.getElementById('editAttendanceForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                const id = data.attendance_id;
+
+                fetch(`/coaches/attendance/${branchName}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).then(res => res.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert(data.message);
+                });
+            });
+
+            // Delete attendance
+            document.querySelectorAll('.delete-attendance').forEach(button => {
+                button.addEventListener('click', function () {
+                    const id = this.dataset.attendanceId;
+                    const coachName = this.dataset.coachName;
+
+                    if (confirm(`Delete attendance record for ${coachName}?`)) {
+                        fetch(`/coaches/attendance/${branchName}/${id}`, { method: 'DELETE' })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) location.reload();
+                                else alert(data.message);
+                            });
+                    }
+                });
+            });
+
+            // Handle Quick Check-in button
+            document.querySelectorAll('.quick-check-in').forEach(button => {
+                button.addEventListener('click', function () {
+                    const coachId = this.dataset.coachId;
+                    const classId = this.dataset.classId;
+                    const branchName = this.dataset.branchName;
+                    const checkInTime = `${new Date().toISOString().split('T')[0]}T${this.dataset.startTime}`;
+                    const checkOutTime = `${new Date().toISOString().split('T')[0]}T${this.dataset.endTime}`;
+
+                    if (!confirm('Quick Check-In will instantly mark both check-in and check-out based on class time. Proceed?')) return;
+
+                    fetch(`/coaches/attendance/${branchName}/quick-check-in`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            coach_id: coachId,
+                            class_id: classId,
+                            check_in_time: checkInTime,
+                            check_out_time: checkOutTime
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Quick Check-In completed.');
+                            location.reload();
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Quick Check-In error:', err);
+                        alert('Something went wrong.');
+                    });
+                });
+            });
+        });
+    </script>
+
+
+    <!-- <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Handle check-in button click
+            document.querySelectorAll('.check-in-class').forEach(button => {
+                button.addEventListener('click', function () {
+                    const coachId = this.getAttribute('data-coach-id');
+                    const classId = this.getAttribute('data-class-id');
+                    const branchName = this.getAttribute('data-branch-name');
+
+                    fetch(`/coaches/attendance/${branchName}/check-in`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            coach_id: coachId,
+                            class_id: classId,
+                            check_in_time: new Date().toISOString()
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Coach checked in successfully');
+                            location.reload();
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Check-in error:', err);
+                        alert('An error occurred during check-in.');
+                    });
+                });
+            });
+
+            // Handle check-out button click
+            document.querySelectorAll('.check-out').forEach(button => {
+                button.addEventListener('click', function () {
+                    const attendanceId = this.getAttribute('data-attendance-id');
+                    const coachName = this.getAttribute('data-coach-name');
+
+                    document.getElementById('checkout_attendance_id').value = attendanceId;
+                    document.getElementById('checkout_coach_name').textContent = coachName;
+
+                    const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
+                    modal.show();
+                });
+            });
+
+            // Handle edit attendance
+            document.querySelectorAll('.edit-attendance').forEach(button => {
+                button.addEventListener('click', function () {
+                    document.getElementById('edit_attendance_id').value = this.dataset.attendanceId;
+                    document.getElementById('edit_coach_id').value = this.dataset.coachId;
+                    document.getElementById('edit_branch_name').value = this.dataset.branchName;
+                    document.getElementById('edit_check_in_time').value = this.dataset.checkIn;
+                    document.getElementById('edit_check_out_time').value = this.dataset.checkOut || '';
+                    document.getElementById('edit_notes').value = this.dataset.notes;
+
+                    const modal = new bootstrap.Modal(document.getElementById('editAttendanceModal'));
+                    modal.show();
+                });
+            });
+
+            // Handle delete attendance
+            document.querySelectorAll('.delete-attendance').forEach(button => {
+                button.addEventListener('click', function () {
+                    const id = this.dataset.attendanceId;
+                    const branchName = this.getAttribute('data-branch-name');
+
+                    if (confirm(`Delete attendance record for ${this.dataset.coachName}?`)) {
+                        fetch(`/attendance/${branchName}/${id}`, { method: 'DELETE' })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.success) location.reload();
+                                else alert(data.message);
+                            });
+                    }
+                });
+            });
+
+            // Handle manual check-in
+            document.getElementById('saveCheckInBtn')?.addEventListener('click', function () {
+                const form = document.getElementById('manualCheckInForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                fetch('/attendance/<%= branchName %>/manual-checkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).then(res => res.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert(data.message);
+                });
+            });
+
+            // Save check-out
+            document.getElementById('saveCheckOutBtn')?.addEventListener('click', function () {
+                const form = document.getElementById('checkOutForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                const id = data.attendance_id;
+                const branchName = this.getAttribute('data-branch-name');
+
+                fetch(`/attendance/${branchName}/checkout/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).then(res => res.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert(data.message);
+                });
+            });
+
+            // Save edited attendance
+            document.getElementById('saveEditAttendanceBtn')?.addEventListener('click', function () {
+                const form = document.getElementById('editAttendanceForm');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                const id = data.attendance_id;
+
+                fetch(`/attendance/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                }).then(res => res.json())
+                .then(data => {
+                    if (data.success) location.reload();
+                    else alert(data.message);
+                });
+            });
+        });
+    </script> -->
+</body>
+</html>

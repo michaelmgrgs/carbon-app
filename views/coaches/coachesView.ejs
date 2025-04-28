@@ -1,0 +1,395 @@
+<!-- Display Coach Management -->
+<%- include('../includes/header') %>
+    <title>Coach Management</title>
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+    <style>
+        .rate-input {
+            width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+        
+        <div class="content-container">
+            <div class="container mt-4">
+                <h1>Coach Management</h1>
+                
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Coaches</h5>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCoachModal">
+                            Add New Coach
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <% if (coaches.length === 0) { %>
+                            <p class="text-center">No coaches found. Add a new coach to get started.</p>
+                        <% } else { %>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <% branches.forEach(branch => { %>
+                                                <th><%= branch.branch_name %> Rate</th>
+                                            <% }); %>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% coaches.forEach(coach => { %>
+                                            <tr>
+                                                <td><%= coach.first_name %> <%= coach.last_name %></td>
+                                                <% branches.forEach(branch => { %>
+                                                    <td>
+                                                        <% if (coach.branch_rates && coach.branch_rates[branch.branch_name]) { %>
+                                                            $<%= parseFloat(coach.branch_rates[branch.branch_name]).toFixed(2) %>
+                                                        <% } else { %>
+                                                            -
+                                                        <% } %>
+                                                    </td>
+                                                <% }); %>
+                                                <td>
+                                                    <span class="badge <%= coach.active ? 'bg-success' : 'bg-danger' %>">
+                                                        <%= coach.active ? 'Active' : 'Inactive' %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-info edit-coach" 
+                                                            data-coach-id="<%= coach.coach_id %>"
+                                                            data-first-name="<%= coach.first_name %>"
+                                                            data-last-name="<%= coach.last_name %>"
+                                                            data-email="<%= coach.email %>"
+                                                            data-phone="<%= coach.phone %>"
+                                                            data-active="<%= coach.active %>"
+                                                            data-branch-rates="<%= JSON.stringify(coach.branch_rates || {}) %>">
+                                                        Edit
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger delete-coach" 
+                                                            data-coach-id="<%= coach.coach_id %>"
+                                                            data-coach-name="<%= coach.first_name %> <%= coach.last_name %>">
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Add Coach Modal -->
+            <div class="modal fade" id="addCoachModal" tabindex="-1" aria-labelledby="addCoachModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="addCoachModalLabel">Add New Coach</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="addCoachForm">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="first_name" class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="last_name" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="email" name="email" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="phone" class="form-label">Phone</label>
+                                        <input type="text" class="form-control" id="phone" name="phone">
+                                    </div>
+                                </div>
+                                
+                                <h6 class="mt-4">Hourly Rates by Branch</h6>
+                                <div class="row mb-3">
+                                    <% branches.forEach(branch => { %>
+                                        <div class="col-md-4 mb-2">
+                                            <label for="rate_<%= branch.branch_name %>" class="form-label"><%= branch.branch_name %> Rate ($)</label>
+                                            <input type="number" class="form-control rate-input" 
+                                                id="rate_<%= branch.branch_name %>" 
+                                                name="branch_rates[<%= branch.branch_name %>]" 
+                                                min="0" step="0.01">
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="saveCoachBtn">Save Coach</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Edit Coach Modal -->
+            <div class="modal fade" id="editCoachModal" tabindex="-1" aria-labelledby="editCoachModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editCoachModalLabel">Edit Coach</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editCoachForm">
+                                <input type="hidden" id="edit_coach_id" name="coach_id">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="edit_first_name" class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="edit_first_name" name="first_name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="edit_last_name" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="edit_last_name" name="last_name" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="edit_email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="edit_email" name="email" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="edit_phone" class="form-label">Phone</label>
+                                        <input type="text" class="form-control" id="edit_phone" name="phone">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="edit_active" name="active" checked>
+                                    <label class="form-check-label" for="edit_active">
+                                        Active
+                                    </label>
+                                </div>
+                                
+                                <h6 class="mt-4">Hourly Rates by Branch</h6>
+                                <div class="row mb-3">
+                                    <% branches.forEach(branch => { %>
+                                        <div class="col-md-4 mb-2">
+                                            <label for="edit_rate_<%= branch.branch_name %>" class="form-label"><%= branch.branch_name %> Rate ($)</label>
+                                            <input type="number" class="form-control rate-input" 
+                                                id="edit_rate_<%= branch.branch_name %>" 
+                                                name="branch_rates[<%= branch.branch_name %>]" 
+                                                min="0" step="0.01">
+                                        </div>
+                                    <% }); %>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="updateCoachBtn">Update Coach</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Delete Confirmation Modal -->
+            <div class="modal fade" id="deleteCoachModal" tabindex="-1" aria-labelledby="deleteCoachModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteCoachModalLabel">Confirm Deactivation</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to deactivate <span id="deleteCoachName"></span>?</p>
+                            <p class="text-danger">This will set the coach as inactive but preserve their records.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Deactivate Coach</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add Coach
+            document.getElementById('saveCoachBtn').addEventListener('click', function() {
+                const form = document.getElementById('addCoachForm');
+                const formData = new FormData(form);
+                
+                // Convert FormData to JSON
+                const branchRates = {};
+                for (const [key, value] of formData.entries()) {
+                    if (key.startsWith('branch_rates[') && value) {
+                        const branchName = key.match(/\[(.*?)\]/)[1];
+                        branchRates[branchName] = parseFloat(value);
+                    }
+                }
+                
+                const data = {
+                    first_name: formData.get('first_name'),
+                    last_name: formData.get('last_name'),
+                    email: formData.get('email'),
+                    phone: formData.get('phone'),
+                    branch_rates: branchRates
+                };
+                
+                fetch('/coaches/branch/<%= branchName %>', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Coach added successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while adding the coach.');
+                });
+            });
+            
+            // Edit Coach - Open Modal with Data
+            document.querySelectorAll('.edit-coach').forEach(button => {
+                button.addEventListener('click', function() {
+                    const coachId = this.getAttribute('data-coach-id');
+                    const firstName = this.getAttribute('data-first-name');
+                    const lastName = this.getAttribute('data-last-name');
+                    const email = this.getAttribute('data-email');
+                    const phone = this.getAttribute('data-phone');
+                    const active = this.getAttribute('data-active') === 'true';
+                    // const branchRates = JSON.parse(this.getAttribute('data-branch-rates'));
+                    let branchRates = {};
+                    try {
+                        const branchRatesStr = this.getAttribute('data-branch-rates');
+                        if (branchRatesStr && branchRatesStr !== 'null' && branchRatesStr !== 'undefined') {
+                            branchRates = JSON.parse(branchRatesStr);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing branch rates:', error);
+                        // Continue with empty branch rates
+                    }
+                    
+                    document.getElementById('edit_coach_id').value = coachId;
+                    document.getElementById('edit_first_name').value = firstName;
+                    document.getElementById('edit_last_name').value = lastName;
+                    document.getElementById('edit_email').value = email;
+                    document.getElementById('edit_phone').value = phone;
+                    document.getElementById('edit_active').checked = active;
+                    
+                    // Set branch rates
+                    <% branches.forEach(branch => { %>
+                        const rateInput_<%= branch.branch_name.replace(/\s+/g, '_') %> = document.getElementById('edit_rate_<%= branch.branch_name %>');
+                        if (branchRates && branchRates['<%= branch.branch_name %>']) {
+                            rateInput_<%= branch.branch_name.replace(/\s+/g, '_') %>.value = branchRates['<%= branch.branch_name %>'];
+                        } else {
+                            rateInput_<%= branch.branch_name.replace(/\s+/g, '_') %>.value = '';
+                        }
+                    <% }); %>
+                    
+                    // Open the modal
+                    const editModal = new bootstrap.Modal(document.getElementById('editCoachModal'));
+                    editModal.show();
+                });
+            });
+            
+            // Update Coach
+            document.getElementById('updateCoachBtn').addEventListener('click', function() {
+                const form = document.getElementById('editCoachForm');
+                const formData = new FormData(form);
+                const coachId = formData.get('coach_id');
+                
+                // Convert FormData to JSON
+                const branchRates = {};
+                for (const [key, value] of formData.entries()) {
+                    if (key.startsWith('branch_rates[') && value) {
+                        const branchName = key.match(/\[(.*?)\]/)[1];
+                        branchRates[branchName] = parseFloat(value);
+                    }
+                }
+                
+                const data = {
+                    first_name: formData.get('first_name'),
+                    last_name: formData.get('last_name'),
+                    email: formData.get('email'),
+                    phone: formData.get('phone'),
+                    active: document.getElementById('edit_active').checked,
+                    branch_rates: branchRates
+                };
+                
+                fetch(`/coaches/branch/<%= branchName %>/${coachId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Coach updated successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating the coach.');
+                });
+            });
+            
+            // Delete Coach
+            document.querySelectorAll('.delete-coach').forEach(button => {
+                button.addEventListener('click', function () {
+                    const coachId = this.dataset.coachId;
+                    const branchName = this.dataset.branchName;
+
+                    if (confirm('Are you sure you want to deactivate this coach?')) {
+                        fetch(`/coaches/branch/${branchName}/${coachId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Coach deactivated successfully!');
+                                location.reload();
+                            } else {
+                                alert('Error: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while deactivating the coach.');
+                        });
+                    }
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
+
+                    

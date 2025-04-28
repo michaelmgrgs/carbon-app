@@ -72,12 +72,16 @@ h1 {
 }
 
 .side-nav {
-  width: 250px;
+  min-width: 270px;
+  max-width: 270px;
+  height: 100vh;
   background: linear-gradient(to bottom, #1c1218 25%, #db3c30 75%);
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   align-items: center;
+  padding: 30px 0;
+  overflow: hidden;
 }
 .side-nav .logo {
   text-align: center;
@@ -90,6 +94,9 @@ h1 {
   font-weight: bold;
   width: 100%;
   text-align: center;
+}
+.side-nav .side-nav-scroll {
+  overflow-y: auto;
 }
 .side-nav ul {
   padding: 0;
@@ -105,17 +112,6 @@ h1 {
   list-style: none;
   position: relative;
 }
-.side-nav .links li:hover ul, .side-nav .super-links li:hover ul {
-  display: block;
-}
-.side-nav .links li:hover ul li a, .side-nav .super-links li:hover ul li a {
-  background-color: #12131c;
-  color: #fff;
-}
-.side-nav .links li:hover > a, .side-nav .super-links li:hover > a {
-  background-color: #f8f8f8;
-  color: #12131c;
-}
 .side-nav .links li a, .side-nav .super-links li a {
   color: #fff;
   display: block;
@@ -127,29 +123,6 @@ h1 {
 }
 .side-nav .links li i, .side-nav .super-links li i {
   margin-right: 5px;
-}
-.side-nav .links li ul, .side-nav .super-links li ul {
-  position: absolute;
-  left: 100%;
-  top: 0;
-  background: #12131c;
-  display: none;
-  z-index: 1;
-}
-.side-nav .links li ul:after, .side-nav .super-links li ul:after {
-  left: 0%;
-  border: solid 8px transparent;
-  content: " ";
-  height: 0;
-  width: 0;
-  position: absolute;
-  pointer-events: none;
-  border-left-color: #f8f8f8;
-  top: 50%;
-  margin-top: -8px;
-}
-.side-nav .links li ul li a, .side-nav .super-links li ul li a {
-  color: #fff !important;
 }
 .side-nav .active {
   background-color: #f8f8f8;
@@ -889,7 +862,7 @@ button {
   .side-nav {
     position: absolute;
     height: 100%;
-    left: -250px;
+    left: -270px;
     top: 0;
     transition: all 0.3s ease-in-out;
     z-index: 1;

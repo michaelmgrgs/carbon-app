@@ -1,0 +1,50 @@
+<%- include('../includes/header') %>
+    <title><%= branchName %> Attendance</title>
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+
+        <div class="content-container">
+            <div class="tabs">
+                <button class="tab" onclick="location.href='/coaches/coachesSchedule/Sheraton'">Sheraton</button>
+                <button class="tab" onclick="location.href='/coaches/coachesSchedule/CFC'">CFC</button>
+            </div>
+            
+            <h1>Schedule for <%= branch %></h1>
+            
+            <form action="/coaches/coachesSchedule/<%= branch %>" method="POST">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Day</th>
+                        <% schedule.forEach(day => { %>
+                        <th><%= day.day %></th>
+                        <% }) %>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <th>Time</th>
+                        <% schedule.forEach(day => { %>
+                        <td>
+                            <ul>
+                            <% day.slots.forEach(slot => { %>
+                                <li>
+                                <input type="checkbox" name="selectedClasses" value="<%= day.day %> <%= slot %>" 
+                                <%= selectedSchedule[branch].includes(day.day + ' ' + slot) ? 'checked' : '' %> 
+                                /> <%= slot %>
+                                </li>
+                            <% }) %>
+                            </ul>
+                        </td>
+                        <% }) %>
+                    </tr>
+                    </tbody>
+                </table>
+        
+                <button type="submit">Submit Selection</button>
+            </form>
+        </div>
+</body>
+</html>

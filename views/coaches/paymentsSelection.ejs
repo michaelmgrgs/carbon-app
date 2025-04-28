@@ -1,0 +1,43 @@
+<!-- Display Coach Management -->
+<%- include('../includes/header') %>
+    <title>Payment Management</title>
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+        
+        <div class="content-container">
+            <div class="container mt-4">
+                <h1>Payment Management</h1>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Select Branch</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Please select a branch to manage coach payments:</p>
+                        
+                        <div class="row">
+                            <% branches.forEach(branch => { %>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title"><%= branch.branch_name %></h5>
+                                            <a href="/coaches/payments/branch/<%= branch.branch_name %>" class="btn btn-primary">
+                                                Manage Payments
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

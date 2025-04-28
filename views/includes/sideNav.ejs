@@ -37,61 +37,76 @@
     });
 
   </script>
-<% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'admin' || loggedInUser.role === 'sales')) { %>
+<% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'admin' || loggedInUser.role === 'sales' || loggedInUser.role === 'coach')) { %>
 <div class="side-nav-mobile">
     <a href="#"><i class="fa-solid fa-bars"></i></a>
 </div>
 <div class="side-nav">
-    <div class="close-icon-mob">
-        <a href="#"><i class="fa-solid fa-xmark"></i></a>
-    </div>
-    <div class="logo">
-        <img src="/images/carbon-logo.png" alt="Logo">
-    </div>
-    <div class="user-info">
-        <% if (loggedInUser) { %>
-          <p>Welcome <%= loggedInUser.first_name %> <%= loggedInUser.last_name %></p>
-        <% } else { %>
-          <p>Welcome Guest</p>
-        <% } %>
-    </div>
-    <div class="links">
-        <ul>
-            <li><a href="/home" class="nav-link"><i class="fa-solid fa-house"></i> Home</a></li>
-            <li><a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-users"></i> Users</a></li>
-            <li><a href="/registration/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-address-card"></i> Registartion</a></li>
-            <li><a href="/subscriptions/branch/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-cash-register"></i> Subscription</a></li>
-            <li><a href="/attendance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-file-excel"></i> Attendance</a></li>
-        </ul>
-    </div>
+    <div class="side-nav-scroll">
+        <div class="close-icon-mob">
+            <a href="#"><i class="fa-solid fa-xmark"></i></a>
+        </div>
+        <div class="logo">
+            <img src="/images/carbon-logo.png" alt="Logo">
+        </div>
+        <div class="user-info">
+            <% if (loggedInUser) { %>
+            <p>Welcome <%= loggedInUser.first_name %> <%= loggedInUser.last_name %></p>
+            <% } else { %>
+            <p>Welcome Guest</p>
+            <% } %>
+        </div>
 
-    <% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'sales')) { %>
+        <% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'admin' || loggedInUser.role === 'sales')) { %>
         <div class="links">
             <ul>
-                <li><a href="/reports/inactiveMembers/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-users-slash"></i> Inactive Users</a>
-                <li><a href="/reports/neverSubscribed/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-user-xmark"></i> Never Subscribed</a>
+                <li><a href="/home" class="nav-link"><i class="fa-solid fa-house"></i> Home</a></li>
+                <li><a href="/users/listing/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-users"></i> Users</a></li>
+                <li><a href="/registration/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-address-card"></i> Registartion</a></li>
+                <li><a href="/subscriptions/branch/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-cash-register"></i> Subscription</a></li>
+                <li><a href="/attendance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-file-excel"></i> Attendance</a></li>
             </ul>
         </div>
-    <% } %>
-    
-    <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
-        <div class="super-links">
-            <ul>
-                <li><a href="/reports/dashboard/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
-                <li><a href="/packages/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Packages</a>
-                    <ul>
-                        <li><a href="/packages/create/<%= branchName %>?branch=<%= branchName %>">Create Packages</a></li>
-                    </ul>
-                </li>
-                <li><a href="/finance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-money-bill-wave"></i> Finance</a></li>
-                <li><a href="/attendanceDetails/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-marker"></i> Attendance Details</a></li>
-            </ul>
+        <% } %>
+
+        <% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'sales')) { %>
+            <div class="links">
+                <ul>
+                    <li><a href="/reports/inactiveMembers/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-users-slash"></i> Inactive Users</a></li>
+                    <li><a href="/reports/neverSubscribed/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-user-xmark"></i> Never Subscribed</a></li>
+                </ul>
+            </div>
+        <% } %>
+
+        <% if (loggedInUser && (loggedInUser.role === 'superadmin' || loggedInUser.role === 'admin' || loggedInUser.role === 'coach')) { %>
+            <div class="links">
+                <ul>
+                    <% if (loggedInUser && (loggedInUser.role === 'superadmin')) { %>
+                        <li><a href="/coaches/branch/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Coaches</a></li>
+                        <li><a href="/coaches/payments" class="nav-link"><i class="fa-solid fa-dollar-sign"></i> Coaches Payments</a></li>
+                    <% } %>
+                    <li><a href="/coaches/attendance" class="nav-link"><i class="fa-solid fa-pen"></i> Coaches Attendance</a></li>
+                    <li><a href="/coaches/classes" class="nav-link"><i class="fa-solid fa-calendar-days"></i> Coaches Classes</a></li>
+                </ul>
+            </div>
+        <% } %>
+        
+        <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
+            <div class="super-links">
+                <ul>
+                    <li><a href="/reports/dashboard/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                    <li><a href="/packages/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Packages</a></li>
+                    <li><a href="/packages/create/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-folder-open"></i> Create Packages</a></li>
+                    <li><a href="/finance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-money-bill-wave"></i> Finance</a></li>
+                    <li><a href="/attendanceDetails/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-marker"></i> Attendance Details</a></li>
+                </ul>
+            </div>
+        <% } %>
+        <div class="logout">
+            <form method="post" action="/logout">
+                <button type="submit"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </form>
         </div>
-    <% } %>
-    <div class="logout">
-        <form method="post" action="/logout">
-            <button type="submit"><i class="fas fa-sign-out-alt"></i> Logout</button>
-        </form>
     </div>
 </div>
 <% } %>
