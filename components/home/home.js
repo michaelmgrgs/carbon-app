@@ -7,7 +7,7 @@ const { authenticate, checkRole } = require('../authMiddleware/authMiddleware');
 
 
 // Display the home page with dynamically fetched branches
-router.get('/', authenticate, checkRole(['superadmin', 'admin', 'sales']), async (req, res) => {
+router.get('/', authenticate, checkRole(['superadmin', 'admin', 'sales', 'coach']), async (req, res) => {
     try {
         // Fetch branches from the database
         const branchesQuery = 'SELECT branch_id, branch_name FROM branches';

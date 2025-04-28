@@ -22,6 +22,10 @@ const neverSubscribedComponent = require('./components/reports/neverSubscribed')
 const attendanceDetailsComponent = require('./components/attendance/attendanceDetails');
 const editUserPackageComponent = require('./components/users/editUserPackage');
 const financeComponent = require('./components/finance/finance');
+const coachesComponent = require('./components/coaches/coaches');
+const coachClassesComponent = require('./components/coaches/classes');
+const coachAttendanceComponent = require('./components/coaches/attendance');
+const coachPaymentsComponent = require('./components/coaches/payments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -82,6 +86,10 @@ app.use('/reports/neverSubscribed', neverSubscribedComponent);
 app.use('/attendanceDetails', attendanceDetailsComponent);
 app.use('/users/editPackage', editUserPackageComponent);
 app.use('/finance', financeComponent);
+app.use('/coaches', coachesComponent);
+app.use('/coaches/classes', coachClassesComponent);
+app.use('/coaches/attendance', coachAttendanceComponent);
+app.use('/coaches/payments', coachPaymentsComponent);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

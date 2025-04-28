@@ -43,9 +43,18 @@ router.post('/', [
         req.session.user = result.rows[0];
 
         // Redirect to the target URL or a default page
-        const targetUrl = req.session.targetUrl || (`/home`); // Default to the root page if no target URL is stored
-        delete req.session.targetUrl; // Clear the stored target URL
-        res.redirect(targetUrl);
+        // const targetUrl = req.session.targetUrl || (`/home`); // Default to the root page if no target URL is stored
+        // delete req.session.targetUrl; // Clear the stored target URL
+        // res.redirect(targetUrl);
+
+        // Determine redirection based on role
+        if (result.rows[0].role === 'coach') {
+          res.redirect('/coaches/attendance'); // Or wherever you want coaches to land
+        } else {
+          const targetUrl = req.session.targetUrl || '/home';
+          delete req.session.targetUrl;
+          res.redirect(targetUrl);
+        }
   
         // Successful login, redirect to the profile page
         // res.redirect(`/profile/view/${result.rows[0].id}`);
