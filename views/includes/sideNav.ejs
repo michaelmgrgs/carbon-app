@@ -87,6 +87,7 @@
                     <% } %>
                     <li><a href="/coaches/attendance" class="nav-link"><i class="fa-solid fa-pen"></i> Coaches Attendance</a></li>
                     <li><a href="/coaches/classes" class="nav-link"><i class="fa-solid fa-calendar-days"></i> Coaches Classes</a></li>
+                    <li><a href="/attendanceDetails/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-marker"></i> Attendance Details</a></li>
                 </ul>
             </div>
         <% } %>
@@ -98,7 +99,6 @@
                     <li><a href="/packages/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Packages</a></li>
                     <li><a href="/packages/create/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-folder-open"></i> Create Packages</a></li>
                     <li><a href="/finance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-money-bill-wave"></i> Finance</a></li>
-                    <li><a href="/attendanceDetails/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-marker"></i> Attendance Details</a></li>
                 </ul>
             </div>
         <% } %>
