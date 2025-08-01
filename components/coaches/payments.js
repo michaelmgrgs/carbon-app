@@ -122,8 +122,11 @@ router.post('/branch/:branchName/calculate', authenticate, checkRole(['superadmi
         
         // Create date range for the selected month
         const paddedMonth = String(month).padStart(2, '0');
-        const startDate = moment(`${year}-${paddedMonth}-01`).startOf('month').format('YYYY-MM-DD');
-        const endDate = moment(`${year}-${paddedMonth}-01`).endOf('month').format('YYYY-MM-DD');
+        // const startDate = moment(`${year}-${paddedMonth}-01`).startOf('month').format('YYYY-MM-DD');
+        // const endDate = moment(`${year}-${paddedMonth}-01`).endOf('month').format('YYYY-MM-DD');
+        const startDate = moment(`${year}-${paddedMonth}-01`).startOf('month').format('YYYY-MM-DD HH:mm:ss');
+        const endDate = moment(`${year}-${paddedMonth}-01`).endOf('month').endOf('day').format('YYYY-MM-DD HH:mm:ss');
+
 
         
         // Delete existing payment records for this month/year/branch/coach
@@ -315,8 +318,12 @@ router.get('/branch/:branchName/:id', authenticate, checkRole(['superadmin']), a
         const payment = paymentResult.rows[0];
         
         // Fetch attendance details for this payment
-        const startDate = moment(`${payment.year}-${String(payment.month).padStart(2, '0')}-01`).startOf('month').format('YYYY-MM-DD');
-        const endDate = moment(`${payment.year}-${String(payment.month).padStart(2, '0')}-01`).endOf('month').format('YYYY-MM-DD');
+        // const startDate = moment(`${payment.year}-${String(payment.month).padStart(2, '0')}-01`).startOf('month').format('YYYY-MM-DD');
+        // const endDate = moment(`${payment.year}-${String(payment.month).padStart(2, '0')}-01`).endOf('month').format('YYYY-MM-DD');
+        const paddedMonth = String(payment.month).padStart(2, '0');
+        const startDate = moment(`${payment.year}-${paddedMonth}-01`).startOf('month').format('YYYY-MM-DD HH:mm:ss');
+        const endDate = moment(`${payment.year}-${paddedMonth}-01`).endOf('month').endOf('day').format('YYYY-MM-DD HH:mm:ss');
+
         
         const attendanceQuery = `
             SELECT ca.attendance_id, ca.check_in_time, ca.check_out_time, 
