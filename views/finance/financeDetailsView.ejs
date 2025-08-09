@@ -8,6 +8,7 @@
         <div class="content-container">
             <div class="user-listing">
                 <h1>Finance Details</h1>
+
                 <div class="filters-container finance-view">
                     <div>
                         <input type="month" id="monthPicker">
@@ -21,6 +22,14 @@
                         <button type="button" id="filterButton">Filter</button>
                     </div>
                 </div>
+
+                <!-- 🔹 NEW: Summary Boxes -->
+                <div class="payment-summary">
+                    <div class="summary-box" id="cashTotal">Cash: 0</div>
+                    <div class="summary-box" id="instapayTotal">Instapay: 0</div>
+                    <div class="summary-box" id="visaTotal">Visa: 0</div>
+                </div>
+
                 <div id="financeTableDetails">
                     <table class="finance-table" id="financeTable">
                         <thead>
@@ -37,29 +46,33 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <% financeDetails.forEach(finance => { %>
-                                <tr>
-                                    <td><%= index + 1 %></td>
-                                    <td><%= finance.user_id %></td>
-                                    <td><%= finance.user_name %></td>
-                                    <td><%= finance.transaction_type %></td>
-                                    <td><%= finance.price %></td>
-                                    <td><%= finance.discount %></td>
-                                    <td><%= finance.start_date %></td>
-                                    <td><%= finance.package_name %></td>
-                                    <td><%= finance.branch_name %></td>
-                                </tr>
-                            <% }); %>
+                            <!-- server-side rendered initial rows (empty by default) -->
+                            <% if (Array.isArray(financeDetails) && financeDetails.length) { %>
+                                <% financeDetails.forEach((finance, idx) => { %>
+                                    <tr>
+                                        <td><%= idx + 1 %></td>
+                                        <td><%= finance.user_id %></td>
+                                        <td><%= finance.user_name %></td>
+                                        <td><%= finance.payment_method %></td>
+                                        <td><%= finance.price %></td>
+                                        <td><%= finance.discount %></td>
+                                        <td><%= finance.start_date %></td>
+                                        <td><%= finance.package_name %></td>
+                                        <td><%= finance.branch_name %></td>
+                                    </tr>
+                                <% }); %>
+                            <% } %>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
+
         <!-- Loader -->
-        <div class="loader" id="loader"></div>
+        <div class="loader" id="loader" style="display:none;">Loading...</div>
 
         <!-- Screen fade -->
-        <div class="screen-fade" id="screenFade"></div>
+        <div class="screen-fade" id="screenFade" style="display:none;"></div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
@@ -67,7 +80,11 @@
 
     <script>
         $(document).ready(function() {
-            // Function to fetch available branches
+            // Set monthPicker to current month by default
+            const now = new Date();
+            const defaultMonth = now.toISOString().slice(0,7); // "YYYY-MM"
+            $('#monthPicker').val(defaultMonth);
+
             function getAvailableBranches() {
                 return new Promise((resolve, reject) => {
                     $.ajax({
@@ -83,47 +100,39 @@
                 });
             }
 
-            // Function to populate the branch dropdown dynamically
             function populateBranchDropdown() {
                 getAvailableBranches()
                     .then(data => {
                         const branchDropdown = $('#branchDropdown');
-                        
-                        // Clear existing options
                         branchDropdown.empty();
+                        branchDropdown.append($('<option>', { value: 'all', text: 'All Branches' }));
 
-                        // Add the default "All Branches" option
-                        branchDropdown.append($('<option>', {
-                            value: 'all',
-                            text: 'All Branches'
-                        }));
-
-                        // Populate the dropdown with available branches
                         data.forEach(branchObj => {
-                            // Extract the branch name from each object
                             const branch = branchObj.branch_name;
-                            branchDropdown.append($('<option>', {
-                                value: branch,
-                                text: branch
-                            }));
+                            branchDropdown.append($('<option>', { value: branch, text: branch }));
                         });
+
+                        // After branch dropdown is populated, trigger initial load for the currently selected branch/month
+                        // 🔹 NEW: initial data load
+                        filterData();
                     })
-                    .catch(error => console.error('Error fetching available branches:', error));
+                    .catch(error => {
+                        console.error('Error fetching available branches:', error);
+                        // still trigger initial load even if branches failed
+                        filterData();
+                    });
             }
 
-            // Call the function to populate the branch dropdown on page load
             populateBranchDropdown();
 
-            /////////////////////////////////////////
-            // Event listener for filter button click
             $('#filterButton').on('click', function() {
-                showLoader(); // Show loader and screen fade
-                filterData(); // Filter data
+                showLoader();
+                filterData();
             });
 
             $('#monthPicker').on('change', function() {
-                showLoader(); // Show loader and screen fade
-                filterData(); // Filter data
+                showLoader();
+                filterData();
             });
 
             function showLoader() {
@@ -137,10 +146,9 @@
             }
 
             function filterData() {
-                const monthYear = $('#monthPicker').val();
-                const branch = $('#branchDropdown').val();
+                const monthYear = $('#monthPicker').val(); // format "YYYY-MM" or empty
+                const branch = $('#branchDropdown').val() || 'all';
 
-                // Make an AJAX request to fetch filtered data
                 $.ajax({
                     url: `/finance/all/financeDetails`,
                     method: 'GET',
@@ -149,36 +157,88 @@
                         branch: branch
                     },
                     success: function(data) {
-                        hideLoader(); // Hide loader and screen fade
-                        updateTable(data); // Update the table with filtered data
+                        hideLoader();
+
+                        // Defensive checks before calling update functions
+                        if (data && Array.isArray(data.financeDetails)) {
+                            updateTable(data.financeDetails);
+                        } else {
+                            console.warn('financeDetails not array, received:', data.financeDetails);
+                            updateTable([]); // clear table
+                        }
+
+                        if (data && Array.isArray(data.paymentTotals)) {
+                            updatePaymentTotals(data.paymentTotals);
+                        } else {
+                            // If totals not provided, set zeros
+                            updatePaymentTotals([]);
+                        }
                     },
                     error: function(error) {
-                        hideLoader(); // Hide loader and screen fade in case of error
+                        hideLoader();
                         console.error('Error fetching filtered data:', error);
                     }
                 });
             }
 
-            function updateTable(data) {
-                const tableBody = $('#financeTable tbody');
-                tableBody.empty(); // Clear existing table rows
+            function updateTable(financeArray) {
+                // 🔹 FIX: defensive check so forEach errors are avoided
+                if (!Array.isArray(financeArray)) {
+                    console.error('updateTable expected an array but got:', financeArray);
+                    return;
+                }
 
-                data.forEach((finance, index) => {
+                const tableBody = $('#financeTable tbody');
+                tableBody.empty();
+
+                if (financeArray.length === 0) {
+                    tableBody.append(`
+                        <tr>
+                            <td colspan="9" style="text-align:center;">No records found for the selected filters.</td>
+                        </tr>
+                    `);
+                    return;
+                }
+
+                financeArray.forEach((finance, index) => {
                     const sequenceNumber = index + 1;
                     tableBody.append(`
                         <tr>
                             <td>${sequenceNumber}</td>
-                            <td>${finance.user_id}</td>
-                            <td>${finance.user_name}</td>
-                            <td>${finance.payment_method}</td>
-                            <td>${finance.price}</td>
-                            <td>${finance.discount}</td>
-                            <td>${finance.start_date}</td>
-                            <td>${finance.package_name}</td>
-                            <td>${finance.branch_name}</td>
+                            <td>${finance.user_id ?? ''}</td>
+                            <td>${finance.user_name ?? ''}</td>
+                            <td>${finance.payment_method ?? ''}</td>
+                            <td>${finance.price ?? 0}</td>
+                            <td>${finance.discount ?? 0}</td>
+                            <td>${finance.start_date ?? ''}</td>
+                            <td>${finance.package_name ?? ''}</td>
+                            <td>${finance.branch_name ?? ''}</td>
                         </tr>
                     `);
                 });
+            }
+
+            // 🔹 NEW: Format numbers with commas and two decimal places
+            function formatNumber(num) {
+                return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function updatePaymentTotals(totals) {
+                let map = { cash: 0, visa: 0, instapay: 0 };
+
+                if (!Array.isArray(totals)) totals = [];
+
+                totals.forEach(t => {
+                    const pm = (t.payment_method || '').toString().toLowerCase();
+                    const val = Number(t.total) || 0;
+                    if (pm.includes('cash')) map.cash += val;
+                    else if (pm.includes('visa')) map.visa += val;
+                    else if (pm.includes('instapay') || pm.includes('insta') || pm.includes('insta-pay')) map.instapay += val;
+                });
+
+                $('#cashTotal').text(`Cash: ${formatNumber(map.cash)}`);
+                $('#visaTotal').text(`Visa: ${formatNumber(map.visa)}`);
+                $('#instapayTotal').text(`Instapay: ${formatNumber(map.instapay)}`);
             }
         });
     </script>
