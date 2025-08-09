@@ -6,6 +6,35 @@ const router = express.Router();
 const moment = require('moment');
 const { authenticate, checkRole } = require('../authMiddleware/authMiddleware');
 
+// wrapped new logic in a function to keep old code clean 
+async function callAdminSignupAPI({ username, password, email, firstName, lastName, gender, birthdate }) {
+  try {
+    const response = await fetch('https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/admin-signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        password,
+        email,
+        name: firstName,
+        family_name: lastName,
+        gender,
+        birthdate
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API call failed with status ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error calling admin-signup API:', error);
+    throw error;
+  }
+}
+
+
 
 router.get('/:branchName', (req, res) => { //authenticate, checkRole(['superadmin' , 'admin', 'sales']),
   const loggedInUser = req.session.user;
@@ -48,6 +77,18 @@ router.post('/:branchName', [
       const customError = 'User with this email already exists. Please use a different email address.';
       return res.render('registration/registrationView', { errors: null, successMessage: null, customError, loggedInUser, branchName });
     }
+
+
+    // calling external logic
+    await callAdminSignupAPI({
+      username: firstName.toLowerCase() + Math.floor(Math.random() * 1000), // example username logic
+      password,
+      email,
+      firstName,
+      lastName,
+      gender: gender.toLowerCase(),
+      birthdate: formattedDateOfBirth
+    });
 
     // Hash the password before storing it in the database
     const hashedPassword = await bcrypt.hash(password, 10);

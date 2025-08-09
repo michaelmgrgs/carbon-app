@@ -38,7 +38,17 @@
                     <input class="form-input" type="email" name="email" required>
 
                     <label class="form-label" for="password">Password:</label>
-                    <input class="form-input" type="password" name="password" required>
+                    <input class="form-input" type="password" name="password" id="password"
+                           required
+                           pattern="^(?!\s+)(?!.*\s+$)(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[$^*.\[\]{}()?&quot;!@#%&/\\,><':;|_~`=+\- ])[A-Za-z0-9$^*.\[\]{}()?&quot;!@#%&/\\,><':;|_~`=+\- ]{8,256}$"
+                           title="Password must be 8-256 characters, include upper and lowercase letters, a number, and a special character.">
+                    <div id="password-feedback" style="font-size: 0.9em;">
+                        <p id="length" style="margin:0;color:red;">• 8-256 characters</p>
+                        <p id="upper" style="margin:0;color:red;">• At least one uppercase letter</p>
+                        <p id="lower" style="margin:0;color:red;">• At least one lowercase letter</p>
+                        <p id="number" style="margin:0;color:red;">• At least one number</p>
+                        <p id="special" style="margin:0;color:red;">• At least one special character</p>
+                    </div>
 
                     <label class="form-label" for="dateOfBirth">Date of Birth:</label>
                     <input class="form-input datepicker" type="text" name="dateOfBirth" id="dateOfBirth" autocomplete="off" required>
@@ -50,7 +60,6 @@
                     </select>
 
                     <label class="form-label" for="residentialArea">Residential Area:</label>
-                    <!-- <input class="form-input" type="text" name="residentialArea" required> -->
                     <select class="form-input" name="residentialArea" id="residentialArea" required>
                         <option value="" disabled selected hidden>Please select an option...</option>
                         <option value="Heliopolis">Heliopolis</option>
@@ -86,10 +95,35 @@
     <script>
         // Initialize the Bootstrap datepicker
         $('.datepicker').datepicker({
-                format: 'dd-mm-yyyy',
-                autoclose: true,
-                todayHighlight: true
-            });
+            format: 'dd-mm-yyyy',
+            autoclose: true,
+            todayHighlight: true
+        });
+
+        // Real-time password feedback
+        const passwordField = document.getElementById('password');
+        const rules = {
+            length: document.getElementById('length'),
+            upper: document.getElementById('upper'),
+            lower: document.getElementById('lower'),
+            number: document.getElementById('number'),
+            special: document.getElementById('special')
+        };
+
+        passwordField.addEventListener('input', function() {
+            const value = passwordField.value;
+
+            // Check length
+            rules.length.style.color = value.length >= 8 && value.length <= 256 ? 'green' : 'red';
+            // Uppercase
+            rules.upper.style.color = /[A-Z]/.test(value) ? 'green' : 'red';
+            // Lowercase
+            rules.lower.style.color = /[a-z]/.test(value) ? 'green' : 'red';
+            // Number
+            rules.number.style.color = /[0-9]/.test(value) ? 'green' : 'red';
+            // Special char
+            rules.special.style.color = /[$^*.\[\]{}()?\"!@#%&\/\\,><':;|_~`=+\- ]/.test(value) ? 'green' : 'red';
+        });
     </script>
 </body>
 </html>
