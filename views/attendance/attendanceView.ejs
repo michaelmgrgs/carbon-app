@@ -29,6 +29,14 @@
                         </select>
                     </div>
 
+                    <!-- New Class Selection -->
+                    <div>
+                        <label for="selectedClass">Select Class:</label>
+                        <select id="selectedClass" name="selectedClass" required>
+                            <option value="">Loading classes...</option>
+                        </select>
+                    </div>
+
                     <input type="hidden" id="subscriptionId" name="subscriptionId" />
 
                     <button type="button" onclick="attend()">Attend</button>
@@ -68,6 +76,7 @@
             const userSearchInput = $('#userSearch');
             const activePackagesContainer = $('#activePackages');
             const selectedPackageDropdown = $('#selectedPackage');
+            const selectedClassDropdown = $('#selectedClass');
             const subscriptionIdInput = $('#subscriptionId');
             const messageContainer = $('#message-container');
             const messageText = $('#message');
@@ -164,6 +173,7 @@
             window.attend = function () {
                 const selectedUserId = userSearchInput.val();
                 const selectedPackageId = selectedPackageDropdown.val();
+                const selectedClassId = selectedClassDropdown.val();
                 const subscriptionId = subscriptionIdInput.val();
 
                 // console.log('Payload:', { userId: selectedUserId, packageId: selectedPackageId, subscriptionId: subscriptionId });
@@ -186,6 +196,14 @@
                     if (success) {
                         messageContainer.addClass('success');
                         animateMessage();
+
+                        // Also call /user-attend if attendance marking succeeded
+                        axios.post('/user-attend', {
+                            userId: selectedUserId,
+                            classId: selectedClassId
+                        }).catch(err => {
+                            console.error('Error marking user attendance for class:', err);
+                        });
                     } else {
                         messageContainer.addClass('error');
                     }
@@ -211,6 +229,7 @@
 
         document.addEventListener('DOMContentLoaded', async function () {
             const selectedPackageDropdown = document.getElementById('selectedPackage');
+            const selectedClassDropdown = document.getElementById('selectedClass');
             const branchName = '<%= branchName %>';
 
             try {
@@ -233,6 +252,25 @@
                 }
             } catch (error) {
                 console.error('Error fetching active packages:', error);
+            }
+
+            // Load upcoming classes
+            try {
+                const classResponse = await axios.get('https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/upcomming-classes');
+                const classes = classResponse.data.filteredTodayClasses;
+                console.log(classes);
+                
+                
+                if (classes.length > 0) {
+                    selectedClassDropdown.innerHTML = classes.map(c => `
+                        <option value="${c.ClassId}">${c.ClassName} - ${moment(c.ClassTime).format('DD-MM-YYYY HH:mm')}</option>
+                    `).join('');
+                } else {
+                    selectedClassDropdown.innerHTML = '<option value="" disabled>No upcoming classes available</option>';
+                }
+            } catch (err) {
+                console.error('Error fetching upcoming classes:', err);
+                selectedClassDropdown.innerHTML = '<option value="" disabled>Error loading classes</option>';
             }
         });
     </script>
