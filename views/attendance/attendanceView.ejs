@@ -177,6 +177,18 @@
                 const subscriptionId = subscriptionIdInput.val();
 
                 // console.log('Payload:', { userId: selectedUserId, packageId: selectedPackageId, subscriptionId: subscriptionId });
+                axios.post(`/attendance/<%= branchName %>/class-attend`, {
+                        userId: selectedUserId,
+                        ClassId: selectedClassId
+                    })
+                    .then(response => {
+                        const { success, message } = response.data;
+                        setMessage(message, success ? 'success' : 'error');
+                    })
+                    .catch(error => {
+                        console.error('Error attending class:', error);
+                        setMessage('Failed to attend class', 'error');
+                    });
 
                 axios.post(`/attendance/<%= branchName %>`, {
                     userId: selectedUserId,

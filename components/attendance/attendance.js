@@ -351,6 +351,30 @@ router.post('/CFC', async (req, res) => {
     }
 });
 
+router.post('/:branchName/class-attend', async (req, res) => {
+    try {
+        const { userId, ClassId } = req.body;        
+        const awsResponse = await fetch(
+            'https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/user-attend',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                     "userId": userId,
+                    "classId": +ClassId,
+                })
+            }
+        );
+
+        const data = await awsResponse.json();
+        res.json(data);
+
+    } catch (error) {
+        console.error('Error in class-attend route:', error);
+        res.status(500).json({ success: false, message: 'Failed to attend class' });
+    }
+});
+
 // Sheraton Attendance Form Submission Route
 router.post('/Sheraton', async (req, res) => {
     try {
