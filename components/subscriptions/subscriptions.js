@@ -4,6 +4,47 @@ const pool = require('../../db');
 const moment = require('moment');
 const { authenticate, checkRole } = require('../authMiddleware/authMiddleware');
 
+// wrapped new logic in a function to keep old code clean
+async function sendSubscriptionToExternalAPI(userId, startDate, endDate, packageName, classes) {    
+    try {
+        let category = 'OTHER';
+        const nameLower = packageName.toLowerCase();
+
+        if (nameLower.includes('box')) category = 'BOX';
+        else if (nameLower.includes('bootcamp')) category = 'BOOTCAMP';
+        else if (nameLower.includes('personal training')) category = 'PT';
+        else if (nameLower.includes('carbon 101')) category = '101';
+
+        const payload = {
+            UserId: String(userId),
+            StartDate: startDate.toISOString(),
+            EndDate: endDate.toISOString(),
+            category,
+            classes
+        };
+
+        const response = await fetch(
+            'https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/user-subscribe',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`External API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('External API response:', data);
+        return data;
+    } catch (error) {
+        console.error('Error sending data to external API:', error.message);
+        return null;
+    }
+}
+
 
 // Common function to fetch packages based on branch
 async function getBranchPackages(branchName) {
@@ -14,7 +55,7 @@ async function getBranchPackages(branchName) {
             FROM gym_packages
             WHERE branch_name = $1 AND end_date > $2
             ORDER BY package_id`;
-        const packagesResult = await pool.query(packagesQuery, [branchName, currentDate]);
+        const packagesResult = await pool.query(packagesQuery, [branchName, currentDate]);        
         return packagesResult.rows;
     } catch (error) {
         console.error('Error fetching branch packages:', error);
@@ -72,7 +113,7 @@ router.post('/branch/:branchName', async (req, res) => {
         const startDateForDB = moment(startDate, 'DD-MM-YYYY').format('YYYY-MM-DD');
 
         // Fetch the session_count and validity_period of the selected gym package
-        const packageDetailsQuery = 'SELECT session_count, validity_period, price FROM gym_packages WHERE package_id = $1';
+        const packageDetailsQuery = 'SELECT session_count, validity_period, price , name FROM gym_packages WHERE package_id = $1';
         const packageDetailsResult = await pool.query(packageDetailsQuery, [packageId]);
 
         if (packageDetailsResult.rows.length > 0) {
@@ -91,6 +132,13 @@ router.post('/branch/:branchName', async (req, res) => {
             `;
 
             await pool.query(insertSubscriptionQuery, [userId, userName, packageId, startDateForDB, endDate, branchName, sessionsCount, paymentMethod, discount || 0]);
+            sendSubscriptionToExternalAPI(
+                userId,
+                moment(startDateForDB).toDate(),
+                endDate,
+                packageDetailsResult.rows[0].name,
+                sessionsCount
+            );
 
             // Render the view and pass endDate as a local variable
             res.render(`subscriptions/subscriptionsView`, { branchName, branchPackages, endDate, validityPeriod, successMessage, loggedInUser });
