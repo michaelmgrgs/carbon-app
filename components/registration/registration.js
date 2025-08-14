@@ -79,9 +79,18 @@ router.post('/:branchName', [
     }
 
 
+
+    // Hash the password before storing it in the database
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert user data into the database
+    const insertUserQuery = 'INSERT INTO users (first_name, last_name, phone_number, email, password, date_of_birth, gender, residential_area, role, registration_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE)  RETURNING id;';
+    const result = await pool.query(insertUserQuery, [firstName, lastName, phoneNumber, email, hashedPassword, formattedDateOfBirth, gender, residentialArea, 'user']);
+
+    const userId = result.rows[0].id != null ? String(result.rows[0].id) : '';    
     // calling external logic
     await callAdminSignupAPI({
-      username: firstName.toLowerCase() + Math.floor(Math.random() * 1000), // example username logic
+      username: userId,
       password,
       email,
       firstName,
@@ -89,14 +98,6 @@ router.post('/:branchName', [
       gender: gender.toLowerCase(),
       birthdate: formattedDateOfBirth
     });
-
-    // Hash the password before storing it in the database
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert user data into the database
-    const insertUserQuery = 'INSERT INTO users (first_name, last_name, phone_number, email, password, date_of_birth, gender, residential_area, role, registration_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_DATE)';
-    await pool.query(insertUserQuery, [firstName, lastName, phoneNumber, email, hashedPassword, formattedDateOfBirth, gender, residentialArea, 'user']);
-
     res.render('registration/registrationView', { errors: null, successMessage: 'User registered successfully', customError: null, loggedInUser, branchName });
   } catch (error) {
     console.error('Error during registration:', error);
