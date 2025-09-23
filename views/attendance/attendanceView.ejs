@@ -182,8 +182,8 @@
                         ClassId: selectedClassId
                     })
                     .then(response => {
-                        const { success, message } = response.data;
-                        setMessage(message, success ? 'success' : 'error');
+                        //const { success, message } = response.data;
+                        //setMessage(message, success ? 'success' : 'error');
                     })
                     .catch(error => {
                         console.error('Error attending class:', error);
@@ -208,14 +208,6 @@
                     if (success) {
                         messageContainer.addClass('success');
                         animateMessage();
-
-                        // Also call /user-attend if attendance marking succeeded
-                        axios.post('/user-attend', {
-                            userId: selectedUserId,
-                            classId: selectedClassId
-                        }).catch(err => {
-                            console.error('Error marking user attendance for class:', err);
-                        });
                     } else {
                         messageContainer.addClass('error');
                     }
