@@ -26,6 +26,7 @@ const coachesComponent = require('./components/coaches/coaches');
 const coachClassesComponent = require('./components/coaches/classes');
 const coachAttendanceComponent = require('./components/coaches/attendance');
 const coachPaymentsComponent = require('./components/coaches/payments');
+const classesScheduleComponent = require('./components/classesSchedule/schedule');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -90,6 +91,7 @@ app.use('/coaches', coachesComponent);
 app.use('/coaches/classes', coachClassesComponent);
 app.use('/coaches/attendance', coachAttendanceComponent);
 app.use('/coaches/payments', coachPaymentsComponent);
+app.use('/classesSchedule/schedule', classesScheduleComponent);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

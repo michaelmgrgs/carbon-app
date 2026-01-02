@@ -233,7 +233,30 @@ async function getSubscribedUsers() {
     const result = await pool.query(query);
     return result.rows;
 }
+router.get('/today-classes', authenticate, checkRole(['superadmin','admin','coach']), async (req, res) => {
+    try {
+        // Get today's day of the week in full format, e.g., Monday, Tuesday
+        const todayDay = moment().format('dddd');
+        console.log(todayDay);
+        // Fetch classes for today
+        const query = `
+            SELECT class_name, start_time, end_time
+            FROM classes_schedule
+            WHERE day_of_week = $1
+            ORDER BY start_time
+        `;
+        const result = await pool.query(query, [todayDay]);
 
+        // Map to string format: classname_startTime-endTime
+        const classesList = result.rows.map(c => `${c.class_name}_${c.start_time}-${c.end_time}`);
+
+        res.json(classesList);
+    } catch (error) {
+        console.error('Error fetching today\'s classes:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+ 
 // Attendance Route
 router.get('/:branchName', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
     try {
@@ -381,6 +404,8 @@ router.post('/Sheraton', async (req, res) => {
         const userId = req.body.userId;
         const packageId = req.body.packageId;
         const subscriptionId = req.body.subscriptionId;
+        const className = req.body.className;
+
 
         // Fetch user's specific subscription
         const userPackageQuery = `
@@ -435,7 +460,15 @@ router.post('/Sheraton', async (req, res) => {
                     INSERT INTO attendance (user_id, package_id, branch_name)
                     VALUES ($1, $2, 'Sheraton')
                 `;
-                await pool.query(insertQuery, [userId, packageId]);
+                console.log("heree");
+                console.log(className);
+                await pool.query(
+                    `INSERT INTO attendance (user_id, package_id, branch_name, class_name)
+                     VALUES ($1, $2, 'Sheraton', $3)`,
+                    [userId, packageId, className]
+                );
+                console.log("success");
+
             }
         } else {
             message = 'No active package with available sessions found!';
