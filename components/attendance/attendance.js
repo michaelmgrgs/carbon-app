@@ -237,7 +237,7 @@ router.get('/today-classes', authenticate, checkRole(['superadmin','admin','coac
     try {
         // Get today's day of the week in full format, e.g., Monday, Tuesday
         const todayDay = moment().format('dddd');
-        console.log(todayDay);
+
         // Fetch classes for today
         const query = `
             SELECT class_name, start_time, end_time
@@ -247,8 +247,12 @@ router.get('/today-classes', authenticate, checkRole(['superadmin','admin','coac
         `;
         const result = await pool.query(query, [todayDay]);
 
-        // Map to string format: classname_startTime-endTime
-        const classesList = result.rows.map(c => `${c.class_name}_${c.start_time}-${c.end_time}`);
+        // Map to string format: classname_startTime-endTime in 12-hour format with AM/PM
+        const classesList = result.rows.map(c => {
+            const start = moment(c.start_time, 'HH:mm:ss').format('hh:mm A');
+            const end = moment(c.end_time, 'HH:mm:ss').format('hh:mm A');
+            return `${c.class_name} _ ${start} - ${end}`;
+        });
 
         res.json(classesList);
     } catch (error) {
@@ -256,6 +260,7 @@ router.get('/today-classes', authenticate, checkRole(['superadmin','admin','coac
         res.status(500).json({ success: false, message: 'Internal Server Error' });
     }
 });
+
  
 // Attendance Route
 router.get('/:branchName', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
@@ -460,8 +465,7 @@ router.post('/Sheraton', async (req, res) => {
                     INSERT INTO attendance (user_id, package_id, branch_name)
                     VALUES ($1, $2, 'Sheraton')
                 `;
-                console.log("heree");
-                console.log(className);
+                
                 await pool.query(
                     `INSERT INTO attendance (user_id, package_id, branch_name, class_name)
                      VALUES ($1, $2, 'Sheraton', $3)`,

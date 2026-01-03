@@ -27,8 +27,9 @@
                             <tr>
                                 <th>User ID</th>
                                 <th>User Name</th>
-                                <th>Package Name</th>
+                                <th>Package</th>
                                 <th>Branch Name</th>
+                                <th>Class Name / Time</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -38,6 +39,7 @@
                                     <td><%= attendance.user_name %></td>
                                     <td><%= attendance.package_name %></td>
                                     <td><%= attendance.branch_name %></td>
+                                    <td><%= attendance.class_name %></td>
                                 </tr>
                             <% }); %>
                         </tbody>
@@ -172,7 +174,7 @@
                             <td>${attendance.user_name}</td>
                             <td>${attendance.package_name}</td>
                             <td>${attendance.branch_name}</td>
-                            <td>${attendance.timestamp}</td>
+                            <td>${attendance.class_name}</td>
                         </tr>
                     `);
                 });

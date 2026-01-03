@@ -29,7 +29,8 @@ async function getAttendanceDetailsByBranchAndDate(branch, date) {
                 A.package_id,
                 P.name AS package_name,
                 A.branch_name,
-                A.timestamp
+                A.timestamp,
+                A.class_name
             FROM
                 attendance A
             INNER JOIN

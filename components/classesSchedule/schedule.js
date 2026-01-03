@@ -70,7 +70,6 @@ router.get('/:branchName', authenticate, checkRole(['superadmin','admin','coach'
    CREATE CLASS
 ====================================================== */
 router.post('/:branchName', authenticate, checkRole(['superadmin','admin','coach']), async (req, res) => {
-    console.log('Iam here');
     try {
         const branchName = req.params.branchName;
         const {
