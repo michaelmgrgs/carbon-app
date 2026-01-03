@@ -384,10 +384,10 @@ router.post('/:branchName/class-attend', async (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                      "userId": userId,
-                    "classId": +ClassId,
+                    "classInfo": ClassId,
                 })
             }
-        );
+        );        
 
         const data = await awsResponse.json();
         res.json(data);
