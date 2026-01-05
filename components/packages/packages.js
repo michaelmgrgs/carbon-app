@@ -49,7 +49,7 @@ router.get('/edit/:packageId/:branchName', authenticate, checkRole(['superadmin'
 // Handle the form submission to update a gym package
 router.post('/edit/:packageId/:branchName', authenticate, checkRole(['superadmin']), async (req, res) => {
   const { packageId } = req.params;
-  const { name, packageType, price, startDate, endDate } = req.body;
+  const { name, packageType, price, startDate, endDate, costPerSession } = req.body;
 
   const branchName = req.params.branchName;
 
@@ -57,11 +57,11 @@ router.post('/edit/:packageId/:branchName', authenticate, checkRole(['superadmin
     // Update the gym package in the database
     const query = `
       UPDATE gym_packages
-      SET name = $1, package_type = $2, price = $3, start_date = $4, end_date = $5
-      WHERE package_id = $6
+      SET name = $1, package_type = $2, price = $3, start_date = $4, end_date = $5, cost_per_session = $6
+      WHERE package_id = $7
     `;
 
-    await pool.query(query, [name, packageType, price, startDate, endDate, packageId]);
+    await pool.query(query, [name, packageType, price, startDate, endDate, costPerSession, packageId]);
 
     // Redirect to the packages listing page
     res.redirect(`/packages/${branchName}?branch=${branchName}`);

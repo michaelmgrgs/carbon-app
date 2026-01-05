@@ -41,6 +41,7 @@ router.post('/create/:branchName', async (req, res) => {
     price,
     startDate,
     endDate,
+    costPerSession,
   } = req.body;
 
   let successMessage, errorMessage;
@@ -48,8 +49,8 @@ router.post('/create/:branchName', async (req, res) => {
   try {
     // Insert the new gym package into the database
     const query = `
-      INSERT INTO gym_packages (branch_name, name, package_type, session_count, validity_period, price, start_date, end_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO gym_packages (branch_name, name, package_type, session_count, validity_period, price, start_date, end_date, cost_per_session)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `;
 
     await pool.query(query, [
@@ -61,6 +62,7 @@ router.post('/create/:branchName', async (req, res) => {
       price,
       startDate,
       endDate,
+      costPerSession,
     ]);
 
     successMessage = 'Gym package created successfully';

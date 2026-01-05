@@ -56,6 +56,11 @@
                             <input type="date" name="endDate" value="<%= package.end_date %>">
                         </label>
 
+                        <label>
+                            Cost Per Session:
+                            <input type="number" name="costPerSession" min="0" value="<%= package.cost_per_session %>">
+                        </label>
+
                         <button type="submit">Update Package</button>
                     </form>
                     <form action="/packages/delete/<%= package.package_id %>/<%= branchName %>?branch=<%= branchName %>" method="post">
