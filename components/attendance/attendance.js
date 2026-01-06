@@ -380,30 +380,6 @@
 //     }
 // });
 
-// router.post('/:branchName/class-attend', async (req, res) => {
-//     try {
-//         const { userId, ClassId } = req.body;        
-//         const awsResponse = await fetch(
-//             'https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/user-attend',
-//             {
-//                 method: 'POST',
-//                 headers: { 'Content-Type': 'application/json' },
-//                 body: JSON.stringify({
-//                      "userId": userId,
-//                     "classInfo": ClassId,
-//                 })
-//             }
-//         );        
-
-//         const data = await awsResponse.json();
-//         res.json(data);
-
-//     } catch (error) {
-//         console.error('Error in class-attend route:', error);
-//         res.status(500).json({ success: false, message: 'Failed to attend class' });
-//     }
-// });
-
 // // Sheraton Attendance Form Submission Route
 // router.post('/Sheraton', async (req, res) => {
 //     try {
@@ -712,5 +688,248 @@ router.post('/Sheraton', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+
+
+router.post('/:branchName/class-attend', async (req, res) => {
+    try {
+        const { userId, ClassId } = req.body;        
+        const awsResponse = await fetch(
+            'https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/user-attend',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                     "userId": userId,
+                    "classInfo": ClassId,
+                })
+            }
+        );        
+
+        const data = await awsResponse.json();
+        res.json(data);
+
+    } catch (error) {
+        console.error('Error in class-attend route:', error);
+        res.status(500).json({ success: false, message: 'Failed to attend class' });
+    }
+});
+
+
+function extractTimesFromClassName(className) {
+    if (!className) return null;
+
+    const match = className.match(/(\d{1,2}:\d{2}\s?(AM|PM))\s*-\s*(\d{1,2}:\d{2}\s?(AM|PM))/i);
+    if (!match) return null;
+
+    const start12 = match[1];
+    const end12 = match[3];
+
+    return {
+        start_time: moment(start12, 'hh:mm A').format('HH:mm'),
+        end_time: moment(end12, 'hh:mm A').format('HH:mm')
+    };
+}
+
+// NEW Attendance deduction to be called from athelete app
+router.post('/class-attend/auto-package' , async (req, res) => {
+    try {
+        const { userId, className } = req.body;
+                const t = await pool.query("select * from user_subscriptions");
+                console.log(t.rows);
+                
+
+
+        if (!userId || !className) {
+            return res.status(400).json({
+                success: false,
+                message: "userId and className are required"
+            });
+        }
+
+        const timeData = extractTimesFromClassName(className);
+
+        // fetch all active subscriptions ordered by earliest start_date
+        const subscriptionsResult = await pool.query(
+            `SELECT *
+             FROM user_subscriptions
+             WHERE user_id = $1
+             AND sessions_left > 0
+             AND end_date > CURRENT_DATE
+             ORDER BY start_date ASC`,
+            [userId]
+        );
+
+        const userResult = await pool.query(
+            'SELECT first_name FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const userName = userResult.rows[0]?.first_name || "User";
+
+        let success = false;
+        let message = "";
+        let usedSubscription = null;
+
+        // try deducting from earliest to latest
+        for (const sub of subscriptionsResult.rows) {
+            if (sub.sessions_left > 0) {
+                usedSubscription = sub;
+
+                await pool.query(
+                    `UPDATE user_subscriptions
+                     SET sessions_left = sessions_left - 1
+                     WHERE user_id = $1
+                     AND subscription_id = $2`,
+                    [userId, sub.subscription_id]
+                );
+
+                success = true;
+                usedSubscription.sessions_left = sub.sessions_left - 1;
+                break;
+            }
+        }
+
+        if (!success) {
+            return res.json({
+                success: false,
+                message: `No active subscription with available sessions found for "${userName}"!`
+            });
+        }
+
+        // record attendance with deducted subscription
+        await pool.query(
+            `INSERT INTO attendance
+             (user_id, package_id, branch_name, class_name, class_start_time, class_end_time)
+                 VALUES ($1,$2,'Sheraton',$3,$4,$5)`,
+            [
+                userId,
+                usedSubscription.package_id,
+                className,
+                timeData?.start_time || null,
+                timeData?.end_time || null
+            ]
+        );
+
+        const expiryDate = moment(usedSubscription.end_date).format('DD-MM-YYYY');
+
+        const userInfo = {
+            name: userName,
+            branch: usedSubscription.branch_name,
+            remainingSessions: usedSubscription.sessions_left,
+            expiryDate: expiryDate,
+            isExpired: moment().isAfter(usedSubscription.end_date)
+        };
+
+        res.json({
+            success: true,
+            message: `Session deducted successfully from earliest subscription of "${userName}"!`,
+            userInfo
+        });
+
+    } catch (error) {
+        console.error('Error in new attendance replica:', error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+});
+
+// CANCEL attendance route
+router.post('/class-attend/cancel', async (req, res) => {
+    try {
+        const { userId, className } = req.body;
+
+        if (!userId || !className) {
+            return res.status(400).json({
+                success: false,
+                message: "userId and className are required"
+            });
+        }
+
+        // find the most recent attendance record for that user + class
+        const attendanceResult = await pool.query(
+            `SELECT *
+             FROM attendance
+             WHERE user_id = $1
+             AND class_name = $2
+             LIMIT 1`,
+            [userId, className]
+        );
+
+        if (!attendanceResult.rows.length) {
+            return res.json({
+                success: false,
+                message: "No attendance record found to cancel."
+            });
+        }
+
+        const attendanceRecord = attendanceResult.rows[0];
+        const packageId = attendanceRecord.package_id;
+
+        // find earliest ACTIVE subscription of that package to restore session
+        const subscriptionResult = await pool.query(
+            `SELECT *
+             FROM user_subscriptions
+             WHERE user_id = $1
+             AND package_id = $2
+             AND end_date > CURRENT_DATE
+             ORDER BY start_date ASC
+             LIMIT 1`,
+            [userId, packageId]
+        );
+
+        if (!subscriptionResult.rows.length) {
+            return res.json({
+                success: false,
+                message: "No active subscription found to restore session."
+            });
+        }
+
+        const usedSubscription = subscriptionResult.rows[0];
+
+        // undo deduction → add back 1 session
+        await pool.query(
+            `UPDATE user_subscriptions
+             SET sessions_left = sessions_left + 1
+             WHERE user_id = $1
+             AND subscription_id = $2`,
+            [userId, usedSubscription.subscription_id]
+        );
+
+        // delete the attendance record
+        await pool.query(
+            `DELETE FROM attendance
+             WHERE user_id = $1
+             AND class_name = $2`,
+             [userId, className]
+        );
+
+        const userResult = await pool.query(
+            'SELECT first_name FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const userName = userResult.rows[0]?.first_name || "User";
+
+        res.json({
+            success: true,
+            message: `Attendance for "${userName}" cancelled successfully and session restored.`,
+            userInfo: {
+                name: userName,
+                remainingSessions: usedSubscription.sessions_left + 1
+            }
+        });
+
+    } catch (error) {
+        console.error('Error cancelling attendance:', error);
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+});
+
+
 
 module.exports = router;
