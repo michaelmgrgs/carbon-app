@@ -469,6 +469,9 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../db');
 const moment = require('moment');
+const momentTimezone = require('moment-timezone'); //moment-timezone
+
+
 const { authenticate, checkRole } = require('../authMiddleware/authMiddleware');
 
 /* =========================
@@ -929,6 +932,198 @@ router.post('/class-attend/cancel', async (req, res) => {
         });
     }
 });
+
+router.post('/class-book/mark-attended', async (req, res) => {
+    try {
+        const { ClassName, ClassTime, userId, userName } = req.body;
+
+        if (!ClassName || !ClassTime || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: "ClassName, ClassTime and userId are required"
+            });
+        }
+
+        // Call AWS booking API
+        const awsResponse = await fetch(
+            'https://v8m0ewgy58.execute-api.eu-north-1.amazonaws.com/book',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(req.body)
+            }
+        );
+
+        const awsData = await awsResponse.json();
+
+        // If AWS booking not successful, return directly
+
+        if (!awsData.message.includes("successful")) {
+            console.log("ahmed");
+            
+            return res.json(awsData);
+        }
+
+        // ===== Format class name for attendance =====
+        const startEgypt = momentTimezone.utc(ClassTime).tz("Africa/Cairo");
+
+        const endEgypt = startEgypt.clone().add(1, 'hour');
+
+        const formattedClassName =
+            `${ClassName} _ ${startEgypt.format('hh:mm A')} - ${endEgypt.format('hh:mm A')}`;
+
+        console.log("Class formatted in Egypt TZ:", formattedClassName);
+
+        // ===== Call the new function instead of internal API =====
+
+        const attendanceResult = await deductSessionAuto(userId, formattedClassName , ClassTime);
+
+        res.json({
+            success: true,
+            message: "Class booked and attendance processed.",
+            awsResponse: awsData,
+            attendanceResponse: attendanceResult
+        });
+
+    } catch (error) {
+        console.error("Error in booking + attendance route:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+});
+
+
+// Endpoint to cancel class booking - forwards to AWS cancel API
+router.post('/class-book/cancel', async (req, res) => {
+    try {
+        const cancelData = req.body;
+
+        const awsResponse = await fetch(
+            'https://v8m0ewgy58.execute-api.eu-north-1.amazonaws.com/cancel-booking',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cancelData)
+            }
+        );
+
+        const data = await awsResponse.json();
+
+        // Send AWS response back to client
+        res.json(data);
+
+    } catch (error) {
+        console.error('Error in cancel booking endpoint:', error);
+
+        res.status(500).json({
+            success: false,
+            message: 'Failed to cancel class booking'
+        });
+    }
+});
+
+async function deductSessionAuto(userId, className, ClassTime) {
+    try {        
+        // Extract times from formatted class name
+        const timeData = extractTimesFromClassName(className);
+        const attendanceTimestamp = moment.utc(ClassTime).toISOString();        
+
+        let usedSubscription = null;
+        let success = false;
+        let message = "";
+
+        // Fetch user name
+        const userResult = await pool.query(
+            'SELECT first_name FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const userName = userResult.rows[0]?.first_name || "User";
+
+        // Get all active subscriptions
+        const subscriptionsResult = await pool.query(
+            `SELECT *
+             FROM user_subscriptions
+             WHERE user_id = $1
+             AND sessions_left > 0
+             AND end_date > CURRENT_DATE
+             ORDER BY start_date ASC`,
+            [userId]
+        );
+
+        for (const sub of subscriptionsResult.rows) {
+            if (sub.sessions_left > 0) {
+                usedSubscription = sub;
+
+                await pool.query(
+                    `UPDATE user_subscriptions
+                     SET sessions_left = sessions_left - 1
+                     WHERE user_id = $1
+                     AND subscription_id = $2`,
+                    [userId, sub.subscription_id]
+                );
+
+                success = true;
+                usedSubscription.sessions_left = sub.sessions_left - 1;
+                message = `Session deducted successfully from "${userName}"!`;
+                break;
+            }
+        }
+
+        if (!success) {
+            return {
+                success: false,
+                message: `No active subscription with available sessions found for "${userName}"!`
+            };
+        }
+        
+
+        // Record attendance
+const attendanceInsert = await pool.query(
+    `INSERT INTO attendance
+     (user_id, package_id, branch_name, class_name, class_start_time, class_end_time, timestamp)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+        userId,
+        usedSubscription.package_id,
+        usedSubscription.branch_name,
+        className,
+        timeData?.start_time || null,
+        timeData?.end_time || null,
+        attendanceTimestamp
+    ]
+);
+
+
+
+if (attendanceInsert.rowCount > 0) {
+    console.log("Attendance inserted successfully");
+} else {
+    console.log("Attendance insert did not affect any rows");
+}
+        const expiryDate = moment(usedSubscription.end_date).format('DD-MM-YYYY');
+
+        return {
+            success: true,
+            message,
+            userInfo: {
+                name: userName,
+                branch: usedSubscription.branch_name,
+                remainingSessions: usedSubscription.sessions_left,
+                expiryDate,
+                isExpired: moment().isAfter(usedSubscription.end_date)
+            }
+        };
+
+    } catch (error) {
+        console.error("Error in attendance function:", error);
+        throw error;
+    }
+}
+
 
 
 
