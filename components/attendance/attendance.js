@@ -1124,6 +1124,161 @@ if (attendanceInsert.rowCount > 0) {
     }
 }
 
+async function cancelAttendanceAuto(userId, className, ClassTime) {
+    try {
+        // find the most recent attendance record for that user + class
+        const attendanceTimestamp = momentTimezone.utc(ClassTime).toISOString();
+
+        const attendanceResult = await pool.query(
+            `SELECT *
+            FROM attendance
+            WHERE user_id = $1
+            AND class_name = $2
+            AND timestamp = $3
+            LIMIT 1`,
+            [userId, className, attendanceTimestamp]
+        );
+
+        if (!attendanceResult.rows.length) {
+            return {
+                success: false,
+                message: "No attendance record found to cancel."
+            };
+        }
+
+        const attendanceRecord = attendanceResult.rows[0];
+        const packageId = attendanceRecord.package_id;
+
+        // find earliest ACTIVE subscription of that package
+        const subscriptionResult = await pool.query(
+            `SELECT *
+             FROM user_subscriptions
+             WHERE user_id = $1
+             AND package_id = $2
+             AND end_date > CURRENT_DATE
+             ORDER BY start_date ASC
+             LIMIT 1`,
+            [userId, packageId]
+        );
+
+        if (!subscriptionResult.rows.length) {
+            return {
+                success: false,
+                message: "No active subscription found to restore session."
+            };
+        }
+
+        const usedSubscription = subscriptionResult.rows[0];
+
+        // restore session
+        const restoreResult = await pool.query(
+            `UPDATE user_subscriptions
+             SET sessions_left = sessions_left + 1
+             WHERE user_id = $1
+             AND subscription_id = $2
+             RETURNING sessions_left`,
+            [userId, usedSubscription.subscription_id]
+        );
+
+        // delete attendance
+        const deleteResult = await pool.query(
+            `DELETE FROM attendance
+             WHERE user_id = $1
+             AND class_name = $2
+             AND timestamp = $3`,
+             [userId, className,attendanceTimestamp]
+        );
+
+        if (!deleteResult.rowCount) {
+            return {
+                success: false,
+                message: "Failed to delete attendance record."
+            };
+        }
+
+        const userResult = await pool.query(
+            'SELECT first_name FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const userName = userResult.rows[0]?.first_name || "User";
+
+        return {
+            success: true,
+            message: `Attendance cancelled and session restored for "${userName}".`,
+            userInfo: {
+                name: userName,
+                remainingSessions: restoreResult.rows[0].sessions_left
+            }
+        };
+
+    } catch (error) {
+        console.error("Error in cancelAttendanceAuto:", error);
+        throw error;
+    }
+}
+
+router.post('/class-book/cancel-with-attendance', async (req, res) => {
+    try {
+        const { ClassName, ClassTime, userId, userName } = req.body;
+
+        if (!ClassName || !ClassTime || !userId) {
+            return res.status(400).json({
+                success: false,
+                message: "ClassName, ClassTime and userId are required"
+            });
+        }
+
+        // Call AWS cancel booking API
+        const awsResponse = await fetch(
+            'https://v8m0ewgy58.execute-api.eu-north-1.amazonaws.com/cancel-booking',
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(req.body)
+            }
+        );
+
+        const awsData = await awsResponse.json();
+        console.log("abadeer",awsData);
+        
+        // If AWS cancel failed, return immediately
+        if (!awsData.message.includes("successful")) {
+            return res.json(awsData);
+        }
+
+        // Convert UTC → Egypt timezone
+        const startEgypt = moment.utc(ClassTime).tz("Africa/Cairo");
+        const endEgypt = startEgypt.clone().add(1, 'hour');
+
+        const formattedClassName =
+            `${ClassName} _ ${startEgypt.format('hh:mm A')} - ${endEgypt.format('hh:mm A')}`;
+
+        console.log("Cancel class formatted:", formattedClassName);
+
+        // Call cancellation logic
+        const cancelResult = await cancelAttendanceAuto(
+            userId,
+            formattedClassName,
+            ClassTime
+        );
+
+        res.json({
+            success: true,
+            message: "Class booking cancelled and attendance reverted.",
+            awsResponse: awsData,
+            cancelResult
+        });
+
+    } catch (error) {
+        console.error("Error in cancel booking + attendance:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Internal Server Error"
+        });
+    }
+});
 
 
 
