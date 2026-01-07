@@ -65,7 +65,7 @@
                 <li><a href="/registration/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-address-card"></i> Registartion</a></li>
                 <li><a href="/subscriptions/branch/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-cash-register"></i> Subscription</a></li>
                 <li><a href="/attendance/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-file-excel"></i> Attendance</a></li>
-                <li><a href="/classesSchedule/schedule/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-file-excel"></i> Schedule</a></li>
+                <li><a href="/classesSchedule/schedule/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-regular fa-calendar"></i> Schedule</a></li>
             </ul>
         </div>
         <% } %>
@@ -85,6 +85,8 @@
                     <% if (loggedInUser && (loggedInUser.role === 'superadmin')) { %>
                         <li><a href="/coaches/branch/<%= branchName %>?branch=<%= branchName %>" class="nav-link"><i class="fa-solid fa-dumbbell"></i> Coaches</a></li>
                         <li><a href="/coaches/payments" class="nav-link"><i class="fa-solid fa-dollar-sign"></i> Coaches Payments</a></li>
+                        <li><a href="/coaches/revenue-payments" class="nav-link"><i class="fa-solid fa-percent"></i> Coaches Revenue</a></li>
+                        <li><a href="/coaches/revenue-payments/branch/<%= branchName %>/breakdown" class="nav-link"><i class="fa-solid fa-wallet"></i> Revenue Breakdown</a></li>
                     <% } %>
                     <li><a href="/coaches/attendance" class="nav-link"><i class="fa-solid fa-pen"></i> Coaches Attendance</a></li>
                     <li><a href="/coaches/classes" class="nav-link"><i class="fa-solid fa-calendar-days"></i> Coaches Classes</a></li>

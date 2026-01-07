@@ -1,0 +1,145 @@
+<%- include('../includes/header') %>
+<title>Revenue Breakdown Verification</title>
+<link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+        <div class="content-container">
+            <div class="container mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Revenue Breakdown: <%= branchName %></h1>
+                    <a href="/coaches/revenue-payments/branch/<%= branchName %>?month=<%= selectedMonth %>&year=<%= selectedYear %>" class="btn btn-secondary">Back to Payments</a>
+                </div>
+
+                <!-- Filter Card -->
+                <div class="card mb-4">
+                    <div class="card-header"><h5>Filter Options</h5></div>
+                    <div class="card-body">
+                        <form method="GET" action="/coaches/revenue-payments/branch/<%= branchName %>/breakdown" class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label for="year" class="form-label">Year</label>
+                                <select name="year" id="year" class="form-select">
+                                    <% for (let y = 2024; y <= 2030; y++) { %>
+                                        <option value="<%= y %>" <%= y === selectedYear ? 'selected' : '' %>><%= y %></option>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="month" class="form-label">Month</label>
+                                <select name="month" id="month" class="form-select">
+                                    <% const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; %>
+                                    <% months.forEach((m, i) => { %>
+                                        <option value="<%= i + 1 %>" <%= (i + 1) === selectedMonth ? 'selected' : '' %>><%= m %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="day" class="form-label">Day (optional)</label>
+                                <select name="day" id="day" class="form-select">
+                                    <option value="">All Days</option>
+                                    <% for (let d = 1; d <= 31; d++) { %>
+                                        <option value="<%= d %>" <%= d === selectedDay ? 'selected' : '' %>><%= d %></option>
+                                    <% } %>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Summary Card -->
+                <div class="card mb-4">
+                    <div class="card-header"><h5>Summary for <%= months[selectedMonth - 1] %> <%= selectedYear %><%= selectedDay ? ', Day ' + selectedDay : '' %></h5></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Total Classes:</strong> <%= sessions.length %></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total Revenue:</strong> $<%= sessions.reduce((sum, s) => sum + s.totalRevenue, 0).toFixed(2) %></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Total 20% Commission:</strong> $<%= (sessions.reduce((sum, s) => sum + s.totalRevenue, 0) * 0.20).toFixed(2) %></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Class Sessions -->
+                <% if (sessions.length === 0) { %>
+                    <div class="alert alert-info">No class sessions found for this period.</div>
+                <% } else { %>
+                    <% sessions.forEach(session => { %>
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><%= moment(session.date).format('YYYY-MM-DD') %> | <%= session.name %></h5>
+                                <span class="badge bg-primary"><%= session.athletes.length %> Attendees</span>
+                            </div>
+                            <div class="card-body">
+                                <!-- Coaches -->
+                                <div class="mb-3">
+                                    <strong>Coaches:</strong>
+                                    <% if (session.coaches.length > 0) { %>
+                                        <% session.coaches.forEach(coach => { %>
+                                            <span class="badge bg-success ms-1"><%= coach.first_name %> <%= coach.last_name %></span>
+                                        <% }) %>
+                                    <% } else { %>
+                                        <span class="badge bg-danger">No coaches matched!</span>
+                                    <% } %>
+                                </div>
+
+                                <!-- Athletes Table -->
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Athlete</th>
+                                                <th>Package</th>
+                                                <th>Price</th>
+                                                <th>Sessions</th>
+                                                <th>Price/Session</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% session.athletes.forEach(athlete => { %>
+                                                <tr>
+                                                    <td><%= athlete.athlete_first %> <%= athlete.athlete_last %></td>
+                                                    <td><%= athlete.package_name %></td>
+                                                    <td>$<%= parseFloat(athlete.package_price).toFixed(2) %></td>
+                                                    <td><%= athlete.session_count %></td>
+                                                    <td>$<%= parseFloat(athlete.price_per_session).toFixed(2) %></td>
+                                                </tr>
+                                            <% }) %>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Revenue Summary -->
+                                <div class="alert alert-secondary mb-0">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Total Class Revenue:</strong> $<%= session.totalRevenue.toFixed(2) %>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>20% Commission:</strong> $<%= (session.totalRevenue * 0.20).toFixed(2) %>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <% if (session.coaches.length > 0) { %>
+                                                <strong>Per Coach:</strong> $<%= (session.totalRevenue * 0.20 / session.coaches.length).toFixed(2) %>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

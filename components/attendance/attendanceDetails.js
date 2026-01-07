@@ -53,8 +53,8 @@ async function getAttendanceDetailsByBranchAndDate(branch, date) {
                 A.timestamp DESC;`;
 
         // Log the query and values for debugging
-        console.log('Executing query:', query);
-        console.log('With values:', values);
+        // console.log('Executing query:', query);
+        // console.log('With values:', values);
 
         const result = await pool.query(query, values);
 
@@ -106,5 +106,25 @@ router.get('/:branch/availableBranches', authenticate, async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+// Delete attendance record
+router.delete('/delete/:attendanceId', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
+    try {
+        const { attendanceId } = req.params;
+
+        const deleteQuery = `
+            DELETE FROM attendance
+            WHERE attendance_id = $1
+        `;
+
+        await pool.query(deleteQuery, [attendanceId]);
+
+        res.json({ success: true, message: 'Attendance record deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting attendance record:', error);
+        res.status(500).json({ success: false, message: 'Internal Server Error' });
+    }
+});
+
 
 module.exports = router;

@@ -451,7 +451,7 @@ router.get('/:branch/availableBranches', authenticate, async (req, res) => {
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-// Function to get attendance data
+// Function to get attendance data - UPDATED to use class_start_time for accurate traffic analysis
 async function getAttendanceData(branch, month, year) {
     // Convert month name to its corresponding numeric value
     const monthNumeric = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
@@ -460,7 +460,7 @@ async function getAttendanceData(branch, month, year) {
     SELECT
         EXTRACT(DOW FROM timestamp) AS day_of_week,
         TO_CHAR(timestamp, 'HH24:MI') AS time,
-        TO_CHAR(timestamp, 'Mon') AS month, -- Return abbreviated month names
+        TO_CHAR(timestamp, 'Mon') AS month,
         COUNT(*) AS attendance_count
     FROM
         attendance
@@ -471,7 +471,7 @@ async function getAttendanceData(branch, month, year) {
     GROUP BY
         EXTRACT(DOW FROM timestamp),
         TO_CHAR(timestamp, 'HH24:MI'),
-        TO_CHAR(timestamp, 'Mon') -- Group by month as well
+        TO_CHAR(timestamp, 'Mon')
     ORDER BY
         time;
     `;
@@ -481,11 +481,11 @@ async function getAttendanceData(branch, month, year) {
     return result.rows;
 }
 
-// Express route for fetching attendance data
+// Express route for fetching attendance data (legacy)
 router.get('/:branch/attendanceData', authenticate, async (req, res) => {
     const branch = req.params.branch;
-    const month = req.query.month; // Month name (e.g., "Mar")
-    const year = req.query.year; // Numeric year value
+    const month = req.query.month;
+    const year = req.query.year;
 
     try {
         const attendanceData = await getAttendanceData(branch, month, year);
@@ -496,6 +496,246 @@ router.get('/:branch/attendanceData', authenticate, async (req, res) => {
     }
 });
 
+//////////////////////////////////////////////////////////////////////////////////////
+
+// NEW: Function to get traffic data by class (using class_start_time)
+async function getTrafficByClass(branch, month, year) {
+    const monthNumeric = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
+
+    const query = `
+    SELECT
+        SPLIT_PART(class_name, ' _ ', 1) AS class_type,
+        class_start_time,
+        COUNT(*) AS attendance_count
+    FROM
+        attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3
+        AND class_start_time IS NOT NULL
+    GROUP BY
+        SPLIT_PART(class_name, ' _ ', 1),
+        class_start_time
+    ORDER BY
+        attendance_count DESC;
+    `;
+
+    const values = [branch, monthNumeric, year];
+    const result = await pool.query(query, values);
+    return result.rows;
+}
+
+// Express route for fetching traffic by class
+router.get('/:branch/trafficByClass', authenticate, async (req, res) => {
+    const branch = req.params.branch;
+    const month = req.query.month;
+    const year = req.query.year;
+
+    try {
+        const trafficData = await getTrafficByClass(branch, month, year);
+        res.json(trafficData);
+    } catch (error) {
+        console.error('Error fetching traffic by class:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+// NEW: Function to get busiest days
+async function getBusiestDays(branch, month, year) {
+    const monthNumeric = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
+
+    const query = `
+    SELECT
+        TO_CHAR(timestamp, 'Day') AS day_name,
+        EXTRACT(DOW FROM timestamp) AS day_of_week,
+        COUNT(*) AS attendance_count
+    FROM
+        attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3
+    GROUP BY
+        TO_CHAR(timestamp, 'Day'),
+        EXTRACT(DOW FROM timestamp)
+    ORDER BY
+        attendance_count DESC;
+    `;
+
+    const values = [branch, monthNumeric, year];
+    const result = await pool.query(query, values);
+    return result.rows;
+}
+
+// Express route for fetching busiest days
+router.get('/:branch/busiestDays', authenticate, async (req, res) => {
+    const branch = req.params.branch;
+    const month = req.query.month;
+    const year = req.query.year;
+
+    try {
+        const busiestDaysData = await getBusiestDays(branch, month, year);
+        res.json(busiestDaysData);
+    } catch (error) {
+        console.error('Error fetching busiest days:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+// NEW: Function to get busiest time slots
+async function getBusiestTimeSlots(branch, month, year) {
+    const monthNumeric = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
+
+    const query = `
+    SELECT
+        class_start_time AS time_slot,
+        COUNT(*) AS attendance_count
+    FROM
+        attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3
+        AND class_start_time IS NOT NULL
+    GROUP BY
+        class_start_time
+    ORDER BY
+        attendance_count DESC;
+    `;
+
+    const values = [branch, monthNumeric, year];
+    const result = await pool.query(query, values);
+    return result.rows;
+}
+
+// Express route for fetching busiest time slots
+router.get('/:branch/busiestTimeSlots', authenticate, async (req, res) => {
+    const branch = req.params.branch;
+    const month = req.query.month;
+    const year = req.query.year;
+
+    try {
+        const timeSlotsData = await getBusiestTimeSlots(branch, month, year);
+        res.json(timeSlotsData);
+    } catch (error) {
+        console.error('Error fetching busiest time slots:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+// NEW: Function to get comprehensive traffic summary
+async function getTrafficSummary(branch, month, year) {
+    const monthNumeric = new Date(Date.parse(month + " 1, 2000")).getMonth() + 1;
+
+    // Get traffic by class type and time slot
+    const classTrafficQuery = `
+    SELECT
+        SPLIT_PART(class_name, ' _ ', 1) AS class_type,
+        class_start_time,
+        class_end_time,
+        COUNT(*) AS attendance_count
+    FROM
+        attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3
+        AND class_start_time IS NOT NULL
+    GROUP BY
+        SPLIT_PART(class_name, ' _ ', 1),
+        class_start_time,
+        class_end_time
+    ORDER BY
+        attendance_count DESC
+    LIMIT 10;
+    `;
+
+    // Get busiest days
+    const busiestDaysQuery = `
+    SELECT
+        TRIM(TO_CHAR(timestamp, 'Day')) AS day_name,
+        EXTRACT(DOW FROM timestamp) AS day_of_week,
+        COUNT(*) AS attendance_count
+    FROM
+        attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3
+    GROUP BY
+        TO_CHAR(timestamp, 'Day'),
+        EXTRACT(DOW FROM timestamp)
+    ORDER BY
+        attendance_count DESC;
+    `;
+
+    // Get busiest time slots
+    const timeSlotsQuery = `
+    SELECT
+        class_start_time AS time_slot,
+        COUNT(*) AS attendance_count
+    FROM
+        attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3
+        AND class_start_time IS NOT NULL
+    GROUP BY
+        class_start_time
+    ORDER BY
+        attendance_count DESC
+    LIMIT 5;
+    `;
+
+    // Get total attendance for the month
+    const totalQuery = `
+    SELECT COUNT(*) AS total_attendance
+    FROM attendance
+    WHERE
+        ($1 = 'all' OR branch_name = $1)
+        AND EXTRACT(MONTH FROM timestamp) = $2
+        AND EXTRACT(YEAR FROM timestamp) = $3;
+    `;
+
+    const values = [branch, monthNumeric, year];
+
+    const [classTraffic, busiestDays, timeSlots, total] = await Promise.all([
+        pool.query(classTrafficQuery, values),
+        pool.query(busiestDaysQuery, values),
+        pool.query(timeSlotsQuery, values),
+        pool.query(totalQuery, values)
+    ]);
+
+    return {
+        classTraffic: classTraffic.rows,
+        busiestDays: busiestDays.rows,
+        busiestTimeSlots: timeSlots.rows,
+        totalAttendance: total.rows[0]?.total_attendance || 0
+    };
+}
+
+// Express route for fetching comprehensive traffic summary
+router.get('/:branch/trafficSummary', authenticate, async (req, res) => {
+    const branch = req.params.branch;
+    const month = req.query.month;
+    const year = req.query.year;
+
+    try {
+        const trafficSummary = await getTrafficSummary(branch, month, year);
+        res.json(trafficSummary);
+    } catch (error) {
+        console.error('Error fetching traffic summary:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 
 module.exports = router;

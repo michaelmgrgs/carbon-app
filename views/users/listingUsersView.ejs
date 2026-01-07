@@ -10,8 +10,8 @@
                 <h1>Users Listing</h1>
 
                 <!-- User Search Filter -->
-                <label for="userFilter">Filter by Name:</label>
-                <input type="text" id="userFilter" name="userFilter" oninput="filterUsers()">
+                <label for="userFilter">Filter by Name or ID:</label>
+                <input type="text" id="userFilter" name="userFilter" oninput="filterUsers()" placeholder="Search by name or user ID...">
                 
                 <div class="users-table">
                     <table border="1">
@@ -53,22 +53,28 @@
     </div>
 
     <script>
-        // Filter Users Function
+        // Filter Users Function - Now supports both Name and User ID
         function filterUsers() {
             const input = document.getElementById('userFilter');
-            const filter = input.value.toUpperCase();
+            const filter = input.value.toUpperCase().trim();
             const tableBody = document.getElementById('userTableBody');
             const rows = tableBody.getElementsByTagName('tr');
 
             for (let i = 0; i < rows.length; i++) {
+                const userId = rows[i].getElementsByTagName('td')[0];
                 const firstName = rows[i].getElementsByTagName('td')[1];
                 const lastName = rows[i].getElementsByTagName('td')[2];
 
-                if (firstName && lastName) {
-                    const textValue = (firstName.textContent || firstName.innerText) + ' ' +
+                if (userId && firstName && lastName) {
+                    const userIdValue = userId.textContent || userId.innerText;
+                    const nameValue = (firstName.textContent || firstName.innerText) + ' ' +
                                     (lastName.textContent || lastName.innerText);
 
-                    if (textValue.toUpperCase().indexOf(filter) > -1) {
+                    // Check if filter matches User ID or Name
+                    const matchesId = userIdValue.toUpperCase().indexOf(filter) > -1;
+                    const matchesName = nameValue.toUpperCase().indexOf(filter) > -1;
+
+                    if (matchesId || matchesName) {
                         rows[i].style.display = '';
                     } else {
                         rows[i].style.display = 'none';
@@ -81,7 +87,6 @@
         // Delete User Function
         function deleteUser(userId) {
             if (confirm('Are you sure you want to delete this user?')) {
-                // Use AJAX or fetch to send a DELETE request to the server
                 fetch(`/users/listing/delete/${userId}`, {
                     method: 'DELETE',
                     headers: {
@@ -95,11 +100,10 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Handle success, e.g., update the UI or show a success message
                     alert(data.message);
+                    location.reload();
                 })
                 .catch(error => {
-                    // Handle errors, e.g., show an error message to the user
                     console.error(error.message);
                 });
             }

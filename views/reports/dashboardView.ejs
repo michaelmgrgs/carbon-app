@@ -74,14 +74,44 @@
                     <canvas id="totalIncomeChart" width="500" height="300"></canvas>
                 </div>
                 <div class="report-box">
-                    <h2><i class="fa-solid fa-medal"></i> Traffic Chart</h2>
-                    <canvas id="attendanceChart" width="500" height="300"></canvas>
+                    <h2><i class="fa-solid fa-medal"></i> Packages Schemes</h2>
+                    <canvas id="bestSellingPackagesChart" width="500" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Traffic Analytics Section -->
+            <div class="reports-container">
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-chart-line"></i> Traffic by Class & Time</h2>
+                    <p>Total Attendance: <b id="totalAttendanceCount">0</b></p>
+                    <canvas id="classTrafficChart" width="500" height="300"></canvas>
+                </div>
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-calendar-days"></i> Busiest Days</h2>
+                    <canvas id="busiestDaysChart" width="500" height="300"></canvas>
                 </div>
             </div>
             <div class="reports-container">
                 <div class="report-box">
-                    <h2><i class="fa-solid fa-medal"></i> Packages Schemes</h2>
-                    <canvas id="bestSellingPackagesChart" width="800" height="350"></canvas>
+                    <h2><i class="fa-solid fa-clock"></i> Busiest Time Slots</h2>
+                    <canvas id="busiestTimeSlotsChart" width="500" height="300"></canvas>
+                </div>
+                <div class="report-box">
+                    <h2><i class="fa-solid fa-users"></i> Class Attendance Details</h2>
+                    <div id="classAttendanceTable" style="max-height: 300px; overflow-y: auto;">
+                        <table border="1" style="width: 100%; font-size: 12px;">
+                            <thead>
+                                <tr>
+                                    <th>Class</th>
+                                    <th>Time</th>
+                                    <th>Attendees</th>
+                                </tr>
+                            </thead>
+                            <tbody id="classAttendanceBody">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -869,13 +899,13 @@
             });
 
 
-            //////////////  Attendance Chart ///////////
+            //////////////  Traffic Analytics Section ///////////
 
-            // Function to get attendance data
-            function getAttendanceData(branch, month, year) {
+            // Function to get comprehensive traffic summary
+            function getTrafficSummary(branch, month, year) {
                 return new Promise((resolve, reject) => {
                     $.ajax({
-                        url: `/reports/dashboard/${branch}/attendanceData?branch=${branch}&month=${month}&year=${year}`,
+                        url: `/reports/dashboard/${branch}/trafficSummary?month=${month}&year=${year}`,
                         method: 'GET',
                         success: function (data) {
                             resolve(data);
@@ -887,77 +917,216 @@
                 });
             }
 
-            // Function to display attendance best times chart
-            function renderAttendanceChart(data) {
-                // Implement rendering logic for the attendance chart using a chart library (e.g., Chart.js)
+            // Helper function to format time
+            function formatTime(timeStr) {
+                if (!timeStr) return 'N/A';
+                const [hours, minutes] = timeStr.split(':');
+                const parsedHours = parseInt(hours, 10);
+                const period = parsedHours >= 12 ? 'PM' : 'AM';
+                const formattedHours = parsedHours % 12 || 12;
+                return `${formattedHours}:${minutes || '00'} ${period}`;
             }
 
-            // Function to handle attendance chart rendering on page load
-            function renderInitialAttendanceChart(branch, defaultMonth, defaultYear) {
-                getAttendanceData(branch, defaultMonth, defaultYear)
-                    .then(data => renderAttendanceChart(data))
-                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+            // Function to render all traffic charts
+            function renderTrafficCharts(data) {
+                // Update total attendance count
+                $('#totalAttendanceCount').text(data.totalAttendance || 0);
+
+                // Render Class Traffic Chart (Bar Chart)
+                renderClassTrafficChart(data.classTraffic);
+
+                // Render Busiest Days Chart (Horizontal Bar)
+                renderBusiestDaysChart(data.busiestDays);
+
+                // Render Busiest Time Slots Chart (Doughnut)
+                renderBusiestTimeSlotsChart(data.busiestTimeSlots);
+
+                // Populate Class Attendance Table
+                populateClassAttendanceTable(data.classTraffic);
             }
 
-            // Function to display attendance best times chart using Chart.js
-            function renderAttendanceChart(data) {
+            // Render Class Traffic Chart
+            function renderClassTrafficChart(classTraffic) {
+                const ctx = document.getElementById('classTrafficChart').getContext('2d');
 
-                const ctx = document.getElementById('attendanceChart').getContext('2d');
-                
-                // Extract data for labels, datasets, etc., based on your data structure
-                const formattedTimes = data.map(entry => {
-                    const [hours, minutes] = entry.time.split(':');
-                    const parsedHours = parseInt(hours, 10);
-                    const period = parsedHours >= 12 ? 'PM' : 'AM';
-                    const formattedHours = parsedHours % 12 || 12; // Convert 0 to 12 for 12-hour format
-                    return `${formattedHours}:${minutes} ${period}`;
+                // Group by class type and sum attendance
+                const classData = {};
+                classTraffic.forEach(entry => {
+                    const classType = entry.class_type || 'Unknown';
+                    if (!classData[classType]) {
+                        classData[classType] = 0;
+                    }
+                    classData[classType] += parseInt(entry.attendance_count);
                 });
 
-                const datasets = [
-                    {
-                        label: 'Attendance Count',
-                        data: data.map(entry => entry.attendance_count),
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 2,
-                        fill: false
-                    }
+                const labels = Object.keys(classData);
+                const values = Object.values(classData);
+
+                const backgroundColors = [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)'
                 ];
 
-                const options = {
-                    responsive: false,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            title: {
-                                display: true,
-                                text: 'Time'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Attendance Count'
-                            },
-                            beginAtZero: true
-                        }
-                    }
-                };
-
-                const config = {
-                    type: 'line',
-                    data: {
-                        labels: formattedTimes,
-                        datasets: datasets
-                    },
-                    options: options
-                };
-
-                // Create or update the chart
-                if (window.AttendanceChart && typeof window.AttendanceChart.destroy === 'function') {
-                    window.AttendanceChart.destroy();
+                if (window.ClassTrafficChart && typeof window.ClassTrafficChart.destroy === 'function') {
+                    window.ClassTrafficChart.destroy();
                 }
 
-                window.AttendanceChart = new Chart(ctx, config);
+                window.ClassTrafficChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Attendees',
+                            data: values,
+                            backgroundColor: backgroundColors.slice(0, labels.length),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Attendees' }
+                            },
+                            x: {
+                                title: { display: true, text: 'Class Type' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Render Busiest Days Chart
+            function renderBusiestDaysChart(busiestDays) {
+                const ctx = document.getElementById('busiestDaysChart').getContext('2d');
+
+                const labels = busiestDays.map(entry => entry.day_name.trim());
+                const values = busiestDays.map(entry => parseInt(entry.attendance_count));
+
+                const backgroundColors = [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)'
+                ];
+
+                if (window.BusiestDaysChart && typeof window.BusiestDaysChart.destroy === 'function') {
+                    window.BusiestDaysChart.destroy();
+                }
+
+                window.BusiestDaysChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Attendees',
+                            data: values,
+                            backgroundColor: backgroundColors.slice(0, labels.length),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Attendees' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Render Busiest Time Slots Chart
+            function renderBusiestTimeSlotsChart(timeSlots) {
+                const ctx = document.getElementById('busiestTimeSlotsChart').getContext('2d');
+
+                const labels = timeSlots.map(entry => formatTime(entry.time_slot));
+                const values = timeSlots.map(entry => parseInt(entry.attendance_count));
+
+                const backgroundColors = [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)'
+                ];
+
+                if (window.BusiestTimeSlotsChart && typeof window.BusiestTimeSlotsChart.destroy === 'function') {
+                    window.BusiestTimeSlotsChart.destroy();
+                }
+
+                window.BusiestTimeSlotsChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: backgroundColors.slice(0, labels.length),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Populate Class Attendance Table
+            function populateClassAttendanceTable(classTraffic) {
+                const tbody = $('#classAttendanceBody');
+                tbody.empty();
+
+                if (!classTraffic || classTraffic.length === 0) {
+                    tbody.append('<tr><td colspan="3">No data available</td></tr>');
+                    return;
+                }
+
+                classTraffic.forEach(entry => {
+                    const classType = entry.class_type || 'Unknown';
+                    const timeSlot = formatTime(entry.class_start_time) + ' - ' + formatTime(entry.class_end_time);
+                    const attendees = entry.attendance_count;
+
+                    tbody.append(`
+                        <tr>
+                            <td>${classType}</td>
+                            <td>${timeSlot}</td>
+                            <td>${attendees}</td>
+                        </tr>
+                    `);
+                });
+            }
+
+            // Function to handle traffic charts rendering on page load
+            function renderInitialTrafficCharts(branch, defaultMonth, defaultYear) {
+                getTrafficSummary(branch, defaultMonth, defaultYear)
+                    .then(data => renderTrafficCharts(data))
+                    .catch(error => console.error('Error fetching and rendering traffic data:', error));
             }
 
 
@@ -1029,41 +1198,41 @@
 
             
 
-            // Call the function to render the attendance chart on page load
-            renderInitialAttendanceChart(defaultBranch, defaultMonth, defaultYear);
+            // Call the function to render the traffic charts on page load
+            renderInitialTrafficCharts(defaultBranch, defaultMonth, defaultYear);
 
 
             // Set the selected attribute for the current month in the dropdown
             $('#monthDropdown').val(defaultMonth);
 
-            // Handle branch selection change
+            // Handle branch selection change for traffic charts
             $('#branchDropdown').on('change', function () {
                 const selectedBranch = $(this).val();
                 const selectedMonth = $('#monthDropdown').val();
                 const selectedYear = $('#yearDropdown').val();
-                getAttendanceData(selectedBranch, selectedMonth, selectedYear)
-                    .then(data => renderAttendanceChart(data))
-                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+                getTrafficSummary(selectedBranch, selectedMonth, selectedYear)
+                    .then(data => renderTrafficCharts(data))
+                    .catch(error => console.error('Error fetching and rendering traffic data:', error));
             });
 
-            // Handle month selection change
+            // Handle month selection change for traffic charts
             $('#monthDropdown').on('change', function () {
                 const selectedMonth = $(this).val();
                 const selectedBranch = $('#branchDropdown').val();
                 const selectedYear = $('#yearDropdown').val();
-                getAttendanceData(selectedBranch, selectedMonth, selectedYear)
-                    .then(data => renderAttendanceChart(data))
-                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+                getTrafficSummary(selectedBranch, selectedMonth, selectedYear)
+                    .then(data => renderTrafficCharts(data))
+                    .catch(error => console.error('Error fetching and rendering traffic data:', error));
             });
 
-            // Handle year selection change
+            // Handle year selection change for traffic charts
             $('#yearDropdown').on('change', function () {
                 const selectedYear = $(this).val();
                 const selectedBranch = $('#branchDropdown').val();
                 const selectedMonth = $('#monthDropdown').val();
-                getAttendanceData(selectedBranch, selectedMonth, selectedYear)
-                    .then(data => renderAttendanceChart(data))
-                    .catch(error => console.error('Error fetching and rendering attendance data:', error));
+                getTrafficSummary(selectedBranch, selectedMonth, selectedYear)
+                    .then(data => renderTrafficCharts(data))
+                    .catch(error => console.error('Error fetching and rendering traffic data:', error));
             });
 
         });

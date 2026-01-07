@@ -67,8 +67,8 @@
                                 <td><%= moment(package.end_date).format('DD-MM-YYYY') %></td>
                                 <td><%= package.payment_method %></td>
                                 <td>
+                                    <a href="/users/editPackage/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" onclick="editPackage('<%= package.package_id %>')" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a>
                                     <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
-                                        <a href="/users/editPackage/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" onclick="editPackage('<%= package.package_id %>')" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a>
                                         <a href="#" onclick="deleteSubscription('<%= user.id %>', '<%= package.subscription_id %>'); return false;" title="Delete"><i class="fa-regular fa-trash-can"></i></a>
                                     <% } %>
                                 </td>
