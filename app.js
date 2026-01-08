@@ -56,8 +56,7 @@ app.use(express.static(path.join(__dirname, 'client/build')));
 
 const cors = require('cors');
 app.use(cors({
-  origin: 'https://carbon-eg.vercel.app', // or '*' for all origins
-  methods: ['GET','POST'],
+  origin: "*"
 }));
 app.use(
     body().customSanitizer((value, { req }) => {
