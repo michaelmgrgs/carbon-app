@@ -55,8 +55,10 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(express.static(path.join(__dirname, 'client/build')));
 
 const cors = require('cors');
+
 app.use(cors({
-  origin: "*"
+  origin: 'https://carbon-eg.vercel.app',
+  credentials: true
 }));
 app.use(
     body().customSanitizer((value, { req }) => {
