@@ -53,6 +53,12 @@ app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 // Serve the React build
 app.use(express.static(path.join(__dirname, 'client/build')));
+
+const cors = require('cors');
+app.use(cors({
+  origin: 'https://carbon-eg.vercel.app', // or '*' for all origins
+  methods: ['GET','POST'],
+}));
 app.use(
     body().customSanitizer((value, { req }) => {
       // Add any custom sanitization logic here if needed
