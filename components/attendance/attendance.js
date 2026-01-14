@@ -695,7 +695,7 @@ router.post('/Sheraton', async (req, res) => {
 
 router.post('/:branchName/class-attend', async (req, res) => {
     try {
-        const { userId, ClassId } = req.body;        
+        const { userId, ClassId } = req.body;    
         const awsResponse = await fetch(
             'https://ffm1be4bg7.execute-api.eu-north-1.amazonaws.com/user-attend',
             {
@@ -717,9 +717,29 @@ router.post('/:branchName/class-attend', async (req, res) => {
     }
 });
 
+function getCurrentTimeFormatted(hourAppender = 0) {
+    const now = new Date();
+
+    let hours = now.getHours() + hourAppender; // 0 - 23
+    const minutes = now.getMinutes(); // 0 - 59
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    hours = hours % 12; // convert 24-hour to 12-hour format
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+
+    return `${hours.toString().padStart(2, '0')}:${minutesStr} ${ampm}`;
+}
 
 function extractTimesFromClassName(className) {
     if (!className) return null;
+
+    if(className=="Private Training"||className=="Open Gym"){
+        return {
+        start_time: getCurrentTimeFormatted(),
+        end_time: getCurrentTimeFormatted(1)}
+    }
 
     const match = className.match(/(\d{1,2}:\d{2}\s?(AM|PM))\s*-\s*(\d{1,2}:\d{2}\s?(AM|PM))/i);
     if (!match) return null;
@@ -1024,7 +1044,6 @@ router.post('/class-book/cancel', async (req, res) => {
         });
     }
 });
-
 async function deductSessionAuto(userId, className, ClassTime) {
     try {        
         // Extract times from formatted class name
