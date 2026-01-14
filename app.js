@@ -30,7 +30,7 @@ const classesScheduleComponent = require('./components/classesSchedule/schedule'
 const coachRevenueRouter = require('./components/coaches/coachRevenue');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3001;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
