@@ -26,6 +26,7 @@ const coachesComponent = require('./components/coaches/coaches');
 const coachClassesComponent = require('./components/coaches/classes');
 const coachAttendanceComponent = require('./components/coaches/attendance');
 const coachPaymentsComponent = require('./components/coaches/payments');
+const classesScheduleComponent = require('./components/classesSchedule/schedule');
 
 // Mobile App
 const cors = require('cors');
@@ -100,6 +101,7 @@ app.use('/coaches', coachesComponent);
 app.use('/coaches/classes', coachClassesComponent);
 app.use('/coaches/attendance', coachAttendanceComponent);
 app.use('/coaches/payments', coachPaymentsComponent);
+app.use('/classesSchedule/schedule', classesScheduleComponent);
 
 //Mobile App
 app.use('/api/mobile', mobileApiRouter);
