@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Post an Update — Carbon</title>
+  <style>
+    body {
+      margin: 0; min-height: 100vh; background: #141514; color: #fff;
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px 20px;
+    }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 26px; margin-bottom: 4px; }
+    p.subtitle { color: #8A8D90; margin-top: 0; margin-bottom: 28px; }
+    .banner {
+      padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 14px;
+    }
+    .banner-success { background: #1c1d1c; border: 1px solid #3BB27333; color: #3BB273; }
+    .banner-error { background: #1c1d1c; border: 1px solid #E8483D33; color: #E8483D; }
+    label { display: block; color: #8A8D90; font-size: 13px; font-weight: 600; margin-bottom: 6px; margin-top: 18px; }
+    input[type="text"], input[type="url"], textarea, select {
+      width: 100%; box-sizing: border-box; background: #1C1D1C; border: 1px solid #2E302F;
+      border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 15px; font-family: inherit;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .upload-box {
+      border: 2px dashed #2E302F; border-radius: 12px; padding: 24px; text-align: center;
+      margin-top: 8px; cursor: pointer; position: relative;
+    }
+    .upload-box:hover { border-color: #D6362F; }
+    .upload-box input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-box .hint { color: #8A8D90; font-size: 13px; margin-top: 4px; }
+    #fileName { color: #3BB273; font-size: 13px; margin-top: 8px; display: none; }
+    .or-divider { text-align: center; color: #8A8D90; font-size: 12px; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .row { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
+    .row label { margin: 0; color: #fff; font-weight: 500; font-size: 14px; }
+    button {
+      margin-top: 28px; width: 100%; padding: 15px; border: none; border-radius: 999px;
+      background: #D6362F; color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    button:hover { background: #b82e28; }
+    .recent { margin-top: 48px; }
+    .recent h2 { font-size: 16px; color: #8A8D90; text-transform: uppercase; letter-spacing: 0.5px; }
+    .recent-item {
+      background: #1C1D1C; border: 1px solid #2E302F; border-radius: 10px;
+      padding: 12px 16px; margin-top: 10px; display: flex; gap: 12px; align-items: center;
+    }
+    .recent-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .recent-item .meta { color: #8A8D90; font-size: 12px; margin-top: 2px; }
+    .pin { color: #D6362F; font-size: 11px; font-weight: 700; margin-left: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Post an Update</h1>
+    <p class="subtitle">This appears in the Carbon app's "Updates & News" section immediately.</p>
+
+    <% if (success) { %>
+      <div class="banner banner-success">✓ Update posted successfully.</div>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="banner banner-error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/news-admin" enctype="multipart/form-data">
+      <label for="title">Title</label>
+      <input type="text" id="title" name="title" required placeholder="e.g. New evening classes added!">
+
+      <label for="body">Message</label>
+      <textarea id="body" name="body" required placeholder="Write the update here..."></textarea>
+
+      <label>Photo</label>
+      <div class="upload-box" onclick="document.getElementById('imageFile').click()">
+        <input type="file" id="imageFile" name="imageFile" accept="image/*" onchange="showFileName(this)">
+        <div>📷 Tap to choose a photo from your computer</div>
+        <div class="hint">JPG or PNG, up to 8MB</div>
+        <div id="fileName"></div>
+      </div>
+
+      <div class="or-divider">— or —</div>
+      <label for="imageUrl">Paste an image URL instead (optional)</label>
+      <input type="url" id="imageUrl" name="imageUrl" placeholder="https://...">
+
+      <label for="branchName">Branch</label>
+      <select id="branchName" name="branchName">
+        <option value="">All branches</option>
+        <option value="CFC">CFC</option>
+        <option value="Sheraton">Sheraton</option>
+      </select>
+
+      <div class="row">
+        <input type="checkbox" id="isPinned" name="isPinned">
+        <label for="isPinned">Pin to top of the list</label>
+      </div>
+
+      <div class="row">
+        <input type="checkbox" id="sendPush" name="sendPush">
+        <label for="sendPush">Also send as a push notification to members</label>
+      </div>
+
+      <button type="submit">Post Update</button>
+    </form>
+
+    <div class="recent">
+      <h2>Recent Updates</h2>
+      <% recentNews.forEach(function(n) { %>
+        <div class="recent-item">
+          <% if (n.image_url) { %><img src="<%= n.image_url %>" alt=""><% } %>
+          <div>
+            <div><%= n.title %><% if (n.is_pinned) { %><span class="pin">PINNED</span><% } %></div>
+            <div class="meta"><%= n.branch_name || 'All branches' %> · <%= new Date(n.created_at).toLocaleDateString() %></div>
+          </div>
+        </div>
+      <% }); %>
+      <% if (recentNews.length === 0) { %>
+        <p style="color:#8A8D90;">No updates posted yet.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <script>
+    function showFileName(input) {
+      const el = document.getElementById('fileName');
+      if (input.files && input.files[0]) {
+        el.textContent = '✓ ' + input.files[0].name;
+        el.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

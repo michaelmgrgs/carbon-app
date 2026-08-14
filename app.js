@@ -27,6 +27,16 @@ const coachClassesComponent = require('./components/coaches/classes');
 const coachAttendanceComponent = require('./components/coaches/attendance');
 const coachPaymentsComponent = require('./components/coaches/payments');
 
+// Mobile App
+const cors = require('cors');
+const mobileApiRouter = require('./mobile-api');
+const attendanceDeskRouter = require('./mobile-api/routes/attendanceDesk');
+const scheduler = require('./mobile-api/jobs/scheduler');
+const adminToolsRouter = require('./mobile-api/routes/adminTools');
+const packageRequestsAdminRouter = require('./mobile-api/routes/packageRequestsAdmin');
+const mobileHubRouter = require('./mobile-api/routes/mobileHub');
+const newsAdminRouter = require('./mobile-api/routes/newsAdmin');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -91,6 +101,15 @@ app.use('/coaches/classes', coachClassesComponent);
 app.use('/coaches/attendance', coachAttendanceComponent);
 app.use('/coaches/payments', coachPaymentsComponent);
 
+//Mobile App
+app.use('/api/mobile', mobileApiRouter);
+app.use('/attendance/desk', attendanceDeskRouter);
+app.use('/api/mobile', cors());
+app.use('/admin-tools', adminToolsRouter);
+app.use('/package-requests', packageRequestsAdminRouter);
+app.use('/mobile-hub', mobileHubRouter);
+app.use('/news-admin', newsAdminRouter); 
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -102,6 +121,9 @@ app.use((req, res, next) => {
   res.locals.currentRoute = req.originalUrl;
   next();
 });
+
+//Mobile App
+scheduler.start();
 
 // Start the server
 app.listen(PORT, () => {

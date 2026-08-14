@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Package Requests — Carbon</title>
+  <style>
+    body { margin: 0; background: #141514; color: #fff; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 40px 20px; }
+    .wrap { max-width: 780px; margin: 0 auto; }
+    h1 { font-size: 26px; margin-bottom: 4px; }
+    p.subtitle { color: #8A8D90; margin-top: 0; margin-bottom: 24px; }
+    .banner { background: #1c1d1c; border: 1px solid #3BB27333; color: #3BB273; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; font-size: 14px; }
+    .tabs { display: flex; gap: 10px; margin-bottom: 24px; }
+    .tab { padding: 8px 16px; border-radius: 999px; border: 1px solid #2E302F; color: #8A8D90; text-decoration: none; font-size: 13px; font-weight: 600; }
+    .tab.active { background: #D6362F; border-color: #D6362F; color: #fff; }
+    .card { background: #1C1D1C; border: 1px solid #2E302F; border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .name { font-weight: 700; font-size: 16px; }
+    .pkg { color: #D6362F; font-weight: 600; font-size: 13px; margin-top: 4px; }
+    .meta { color: #8A8D90; font-size: 13px; margin-top: 6px; }
+    .note { color: #8A8D90; font-size: 13px; margin-top: 10px; font-style: italic; }
+    .actions { display: flex; gap: 10px; margin-top: 16px; }
+    .btn { flex: 1; padding: 10px; border: none; border-radius: 999px; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .btn-approve { background: #3BB273; color: #fff; }
+    .btn-decline { background: transparent; border: 1px solid #E8483D; color: #E8483D; }
+    .badge { padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge-approved { background: #3BB27322; color: #3BB273; border: 1px solid #3BB273; }
+    .badge-declined { background: #E8483D22; color: #E8483D; border: 1px solid #E8483D; }
+    .empty { color: #8A8D90; text-align: center; padding: 40px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Package Requests</h1>
+    <p class="subtitle">Members requesting a package from the app show up here.</p>
+
+    <% if (success === 'approved') { %><div class="banner">✓ Approved — the member's subscription is now active.</div><% } %>
+    <% if (success === 'declined') { %><div class="banner" style="border-color:#E8483D33;color:#E8483D;">Declined.</div><% } %>
+    <% if (success === 'already_handled') { %><div class="banner" style="border-color:#E8B33933;color:#E8B339;">That request was already handled.</div><% } %>
+
+    <div class="tabs">
+      <a href="/package-requests?status=pending" class="tab <%= status === 'pending' ? 'active' : '' %>">Pending (<%= counts.pending %>)</a>
+      <a href="/package-requests?status=approved" class="tab <%= status === 'approved' ? 'active' : '' %>">Approved (<%= counts.approved %>)</a>
+      <a href="/package-requests?status=declined" class="tab <%= status === 'declined' ? 'active' : '' %>">Declined (<%= counts.declined %>)</a>
+    </div>
+
+    <% requests.forEach(function(r) { %>
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <div class="name"><%= r.first_name %> <%= r.last_name %></div>
+            <div class="pkg"><%= r.package_name %> · <%= Number(r.price).toLocaleString() %> EGP</div>
+          </div>
+          <% if (status === 'approved') { %><span class="badge badge-approved">Approved</span><% } %>
+          <% if (status === 'declined') { %><span class="badge badge-declined">Declined</span><% } %>
+        </div>
+        <div class="meta"><%= r.branch_name %> · <%= r.phone_number %> · requested <%= new Date(r.created_at).toLocaleDateString() %></div>
+        <% if (r.note) { %><div class="note">"<%= r.note %>"</div><% } %>
+
+        <% if (status === 'pending') { %>
+          <div class="actions">
+            <form method="POST" action="/package-requests/<%= r.id %>/approve" style="flex:1;">
+              <button type="submit" class="btn btn-approve" style="width:100%;">Approve & Activate</button>
+            </form>
+            <form method="POST" action="/package-requests/<%= r.id %>/decline" style="flex:1;">
+              <button type="submit" class="btn btn-decline" style="width:100%;">Decline</button>
+            </form>
+          </div>
+        <% } %>
+      </div>
+    <% }); %>
+
+    <% if (requests.length === 0) { %>
+      <div class="empty">No <%= status %> requests.</div>
+    <% } %>
+  </div>
+</body>
+</html>
