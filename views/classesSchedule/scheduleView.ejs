@@ -1,0 +1,240 @@
+<%- include('../includes/header') %>
+    <title>Classes Schedule</title>
+    <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <%- include('../includes/sideNav') %>
+        <div class="content-container">
+            <div class="container mt-4">
+                <h1>Classes Schedule</h1>
+
+                <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addClassModal">
+                    Add Class
+                </button>
+
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Coach</th>
+                            <th>Branch</th>
+                            <th>Class Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% classes.forEach(c => { %>
+                            <tr>
+                                <td><%= c.day_of_week %></td>
+                                <td><%= c.start_time.slice(0,5) %> - <%= c.end_time.slice(0,5) %></td>
+                                <td><%= c.first_name %> <%= c.last_name %></td>
+                                <td><%= c.branch_name %></td>
+                                <td><%= c.class_name %></td>
+                                <td>
+                                    <button class="btn btn-sm btn-info edit-class"
+                                        data-id="<%= c.class_id %>"
+                                        data-coach="<%= c.coach_id %>"
+                                        data-branch="<%= c.branch_name %>"
+                                        data-day="<%= c.day_of_week %>"
+                                        data-start="<%= c.start_time %>"
+                                        data-end="<%= c.end_time %>"
+                                        data-name="<%= c.class_name %>"
+                                    >Edit</button>
+                                    <button class="btn btn-sm btn-danger delete-class"
+                                        data-id="<%= c.class_id %>"
+                                        data-name="<%= c.class_name %>"
+                                    >Delete</button>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Class Modal -->
+        <div class="modal fade" id="addClassModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addClassForm">
+                            <div class="mb-3">
+                                <label class="form-label">Coach</label>
+                                <select class="form-select" name="coach_id" required>
+                                    <option value="">Select Coach</option>
+                                    <% coaches.forEach(c => { %>
+                                        <option value="<%= c.coach_id %>"><%= c.first_name %> <%= c.last_name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" name="branch_name" required>
+                                    <option value="">Select Branch</option>
+                                    <% branches.forEach(b => { %>
+                                        <option value="<%= b.branch_name %>"><%= b.branch_name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Day of Week</label>
+                                <select class="form-select" name="day_of_week" required>
+                                    <option value="">Select Day</option>
+                                    <% ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(day => { %>
+                                        <option value="<%= day %>"><%= day %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Class Name</label>
+                                <input type="text" class="form-control" name="class_name" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Time</label>
+                                    <input type="time" class="form-control" name="start_time" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Time</label>
+                                    <input type="time" class="form-control" name="end_time" required>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button class="btn btn-primary" id="saveClassBtn">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Class Modal -->
+        <div class="modal fade" id="editClassModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editClassForm">
+                            <input type="hidden" name="class_id" id="edit_class_id">
+                            <div class="mb-3">
+                                <label class="form-label">Coach</label>
+                                <select class="form-select" name="coach_id" id="edit_coach_id" required>
+                                    <option value="">Select Coach</option>
+                                    <% coaches.forEach(c => { %>
+                                        <option value="<%= c.coach_id %>"><%= c.first_name %> <%= c.last_name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" name="branch_name" id="edit_branch_name" required>
+                                    <option value="">Select Branch</option>
+                                    <% branches.forEach(b => { %>
+                                        <option value="<%= b.branch_name %>"><%= b.branch_name %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Day of Week</label>
+                                <select class="form-select" name="day_of_week" id="edit_day_of_week" required>
+                                    <option value="">Select Day</option>
+                                    <% ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].forEach(day => { %>
+                                        <option value="<%= day %>"><%= day %></option>
+                                    <% }) %>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Class Name</label>
+                                <input type="text" class="form-control" name="class_name" id="edit_class_name" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Start Time</label>
+                                    <input type="time" class="form-control" name="start_time" id="edit_start_time" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">End Time</label>
+                                    <input type="time" class="form-control" name="end_time" id="edit_end_time" required>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button class="btn btn-primary" id="updateClassBtn">Update</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script src="/node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add Class
+            document.getElementById('saveClassBtn').addEventListener('click', function() {
+                const form = document.getElementById('addClassForm');
+                const data = Object.fromEntries(new FormData(form).entries());
+                fetch(`/classesSchedule/schedule/<%= branchName %>`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(data)
+                }).then(r=>r.json()).then(res=>{
+                    if(res.success){ location.reload(); } else { alert(res.message || 'Error'); }
+                });
+            });
+
+            // Edit button click
+            document.querySelectorAll('.edit-class').forEach(btn=>{
+                btn.addEventListener('click',()=>{
+                    const data = btn.dataset;
+                    document.getElementById('edit_class_id').value = data.id;
+                    document.getElementById('edit_coach_id').value = data.coach;
+                    document.getElementById('edit_branch_name').value = data.branch;
+                    document.getElementById('edit_day_of_week').value = data.day;
+                    document.getElementById('edit_class_name').value = data.name;
+                    document.getElementById('edit_start_time').value = data.start.slice(0,5);
+                    document.getElementById('edit_end_time').value = data.end.slice(0,5);
+                    new bootstrap.Modal(document.getElementById('editClassModal')).show();
+                });
+            });
+
+            // Update class
+            document.getElementById('updateClassBtn').addEventListener('click', function(){
+                const form = document.getElementById('editClassForm');
+                const data = Object.fromEntries(new FormData(form).entries());
+                fetch(`/classesSchedule/schedule/<%= branchName %>/${data.class_id}`, {
+                    method:'PUT',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify(data)
+                }).then(r=>r.json()).then(res=>{
+                    if(res.success){ location.reload(); } else { alert(res.message || 'Error'); }
+                });
+            });
+
+            // Delete class
+            document.querySelectorAll('.delete-class').forEach(btn=>{
+                btn.addEventListener('click',()=>{
+                    const id = btn.dataset.id;
+                    if(confirm(`Delete class "${btn.dataset.name}"?`)){
+                        fetch(`/classesSchedule/schedule/<%= branchName %>/${id}`,{method:'DELETE'})
+                            .then(r=>r.json()).then(res=>{
+                                if(res.success){ location.reload(); } else { alert(res.message || 'Error'); }
+                            });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
