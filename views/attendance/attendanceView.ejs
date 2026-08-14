@@ -29,6 +29,16 @@
                         </select>
                     </div>
 
+                    <!-- New Class Selection -->
+                    <div>
+                        <label for="selectedClass">Select Class:</label>
+                        <select id="selectedClass" name="selectedClass" required>
+                            <option value="">Loading classes...</option>
+                            <option value="Open gym">Open gym</option>
+                            <option value="Private training">Private training</option>
+                        </select>
+                    </div>
+
                     <input type="hidden" id="subscriptionId" name="subscriptionId" />
 
                     <button type="button" onclick="attend()">Attend</button>
@@ -68,6 +78,7 @@
             const userSearchInput = $('#userSearch');
             const activePackagesContainer = $('#activePackages');
             const selectedPackageDropdown = $('#selectedPackage');
+            const selectedClassDropdown = $('#selectedClass');
             const subscriptionIdInput = $('#subscriptionId');
             const messageContainer = $('#message-container');
             const messageText = $('#message');
@@ -164,14 +175,28 @@
             window.attend = function () {
                 const selectedUserId = userSearchInput.val();
                 const selectedPackageId = selectedPackageDropdown.val();
+                const selectedClassId = selectedClassDropdown.val();
                 const subscriptionId = subscriptionIdInput.val();
 
                 // console.log('Payload:', { userId: selectedUserId, packageId: selectedPackageId, subscriptionId: subscriptionId });
+                axios.post(`/attendance/<%= branchName %>/class-attend`, {
+                        userId: selectedUserId,
+                        ClassId: selectedClassId
+                    })
+                    .then(response => {
+                        //const { success, message } = response.data;
+                        //setMessage(message, success ? 'success' : 'error');
+                    })
+                    .catch(error => {
+                        console.error('Error attending class:', error);
+                        setMessage('Failed to attend class', 'error');
+                    });
 
                 axios.post(`/attendance/<%= branchName %>`, {
                     userId: selectedUserId,
                     packageId: selectedPackageId,
-                    subscriptionId: subscriptionId
+                    subscriptionId: subscriptionId,
+                    className:selectedClassId
                 })
                 .then(response => {
                     const { success, message, userInfo } = response.data;
@@ -209,32 +234,53 @@
             }
         });
 
+       
         document.addEventListener('DOMContentLoaded', async function () {
-            const selectedPackageDropdown = document.getElementById('selectedPackage');
-            const branchName = '<%= branchName %>';
+    const selectedPackageDropdown = document.getElementById('selectedPackage');
+    const selectedClassDropdown = document.getElementById('selectedClass');
+    const branchName = '<%= branchName %>';
 
-            try {
-                const response = await axios.get(`/attendance/${branchName}/activePackages`);
-                const activePackages = response.data;
-                const activePackagesFiltered = activePackages.filter(package => moment().isBefore(package.end_date));
+    // Load active packages (keep your current logic)
+    try {
+        const response = await axios.get(`/attendance/${branchName}/activePackages`);
+        const activePackages = response.data;
+        const activePackagesFiltered = activePackages.filter(package => moment().isBefore(package.end_date));
 
-                if (activePackagesFiltered.length > 0) {
-                    selectedPackageDropdown.innerHTML = activePackagesFiltered.map(package => `
-                        <option value="${package.package_id}" data-subscription-id="${package.subscription_id}">
-                            ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
-                        </option>
-                    `).join('');
+        if (activePackagesFiltered.length > 0) {
+            selectedPackageDropdown.innerHTML = activePackagesFiltered.map(package => `
+                <option value="${package.package_id}" data-subscription-id="${package.subscription_id}">
+                    ${package.branch_name} - ${package.name} (${package.sessions_left} sessions) - Expires on ${moment(package.end_date).format('DD-MM-YYYY')}
+                </option>
+            `).join('');
 
-                    // Set the subscription ID of the first package by default
-                    const subscriptionIdInput = document.getElementById('subscriptionId');
-                    subscriptionIdInput.value = activePackagesFiltered[0].subscription_id;
-                } else {
-                    selectedPackageDropdown.innerHTML = '<option value="" disabled>No active packages available</option>';
-                }
-            } catch (error) {
-                console.error('Error fetching active packages:', error);
-            }
-        });
-    </script>
+            const subscriptionIdInput = document.getElementById('subscriptionId');
+            subscriptionIdInput.value = activePackagesFiltered[0].subscription_id;
+        } else {
+            selectedPackageDropdown.innerHTML = '<option value="" disabled>No active packages available</option>';
+        }
+    } catch (error) {
+        console.error('Error fetching active packages:', error);
+    }
+
+    // Load today's classes from backend
+    try {
+        const classResponse = await axios.get(`/attendance/today-classes`);
+        const classes = classResponse.data; // This will be ["Yoga_08:00-09:00", "CrossFit_10:00-11:00", ...]
+        classes.push("Open Gym");
+        classes.push("Private Training");
+        if (classes.length > 0) {
+            selectedClassDropdown.innerHTML = classes.map(c => `
+                <option value="${c}">${c.replace('_', ' - ')}</option>
+            `).join('');
+        } else {
+            selectedClassDropdown.innerHTML = '<option value="" disabled>No classes today</option>';
+        }
+    } catch (err) {
+        console.error('Error fetching today\'s classes:', err);
+        selectedClassDropdown.innerHTML = '<option value="" disabled>Error loading classes</option>';
+    }
+});
+   
+   </script>
 </body>
 </html>
