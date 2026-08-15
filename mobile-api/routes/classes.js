@@ -16,15 +16,23 @@ router.get('/', authenticateMobile, async (req, res) => {
   try {
     let query = `
       SELECT cs.class_id, cs.class_name, cs.branch_name, cs.day_of_week, cs.start_time, cs.end_time, cs.capacity,
-             c.first_name AS coach_first_name, c.last_name AS coach_last_name
+             COALESCE(
+               json_agg(
+                 json_build_object('firstName', c.first_name, 'lastName', c.last_name)
+                 ORDER BY c.first_name
+               ) FILTER (WHERE c.coach_id IS NOT NULL AND c.active = TRUE),
+               '[]'
+             ) AS coaches
       FROM classes_schedule cs
-      JOIN coaches c ON c.coach_id = cs.coach_id
-      WHERE c.active = TRUE`;
+      LEFT JOIN class_coaches cc ON cc.class_id = cs.class_id
+      LEFT JOIN coaches c ON c.coach_id = cc.coach_id
+      WHERE 1=1`;
     const params = [];
     if (branch) {
       params.push(branch);
       query += ` AND cs.branch_name = $${params.length}`;
     }
+    query += ' GROUP BY cs.class_id';
     const scheduleResult = await pool.query(query, params);
 
     // Build the list of concrete dates (today .. today+days) we're expanding into
@@ -72,7 +80,8 @@ router.get('/', authenticateMobile, async (req, res) => {
           dayOfWeek: cls.day_of_week,
           startTime: cls.start_time,
           endTime: cls.end_time,
-          coachName: `${cls.coach_first_name} ${cls.coach_last_name}`,
+          coaches: cls.coaches, // array of { firstName, lastName }
+          coachName: cls.coaches.map((c) => `${c.firstName} ${c.lastName}`).join(', ') || 'TBA',
           capacity: cls.capacity,
           bookedCount,
           spotsLeft: cls.capacity != null ? Math.max(cls.capacity - bookedCount, 0) : null,
@@ -183,15 +192,27 @@ router.get('/mine', authenticateMobile, async (req, res) => {
     const query = `
       SELECT cb.id, cb.class_date, cb.status, cb.booked_at, cb.cancelled_at,
              cs.class_name, cs.branch_name, cs.start_time, cs.end_time,
-             c.first_name AS coach_first_name, c.last_name AS coach_last_name
+             COALESCE(
+               json_agg(
+                 json_build_object('firstName', c.first_name, 'lastName', c.last_name)
+                 ORDER BY c.first_name
+               ) FILTER (WHERE c.coach_id IS NOT NULL),
+               '[]'
+             ) AS coaches
       FROM class_bookings cb
       JOIN classes_schedule cs ON cs.class_id = cb.class_id
-      JOIN coaches c ON c.coach_id = cs.coach_id
+      LEFT JOIN class_coaches cc ON cc.class_id = cs.class_id
+      LEFT JOIN coaches c ON c.coach_id = cc.coach_id
       WHERE cb.user_id = $1 AND cb.class_date ${scope === 'upcoming' ? '>=' : '<'} CURRENT_DATE
+      GROUP BY cb.id, cs.class_name, cs.branch_name, cs.start_time, cs.end_time
       ORDER BY cb.class_date ${scope === 'upcoming' ? 'ASC' : 'DESC'}, cs.start_time ASC
       LIMIT 50`;
     const result = await pool.query(query, [req.mobileUser.id]);
-    res.json({ bookings: result.rows });
+    const bookings = result.rows.map((b) => ({
+      ...b,
+      coach_name: b.coaches.map((c) => `${c.firstName} ${c.lastName}`).join(', ') || 'TBA',
+    }));
+    res.json({ bookings });
   } catch (err) {
     console.error('Error fetching bookings:', err);
     res.status(500).json({ error: 'Internal server error' });

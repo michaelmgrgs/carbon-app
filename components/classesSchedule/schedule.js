@@ -13,6 +13,8 @@ async function getAllBranches() {
     return branchesResult.rows;
 }
 
+// Returns classes for a branch, each with a `coaches` array (all assigned
+// coaches) instead of a single coach — built via class_coaches.
 async function getAllClasses(branchName) {
     const query = `
         SELECT cs.class_id,
@@ -22,11 +24,18 @@ async function getAllClasses(branchName) {
                cs.day_of_week,
                cs.start_time,
                cs.end_time,
-               c.first_name,
-               c.last_name
+               COALESCE(
+                 json_agg(
+                   json_build_object('coach_id', c.coach_id, 'first_name', c.first_name, 'last_name', c.last_name)
+                   ORDER BY c.first_name
+                 ) FILTER (WHERE c.coach_id IS NOT NULL),
+                 '[]'
+               ) AS coaches
         FROM classes_schedule cs
-        JOIN coaches c ON cs.coach_id = c.coach_id
+        LEFT JOIN class_coaches cc ON cc.class_id = cs.class_id
+        LEFT JOIN coaches c ON c.coach_id = cc.coach_id
         WHERE cs.branch_name = $1
+        GROUP BY cs.class_id
         ORDER BY
           CASE cs.day_of_week
             WHEN 'Sunday' THEN 1
@@ -51,6 +60,19 @@ async function getAllCoaches() {
     `)).rows;
 }
 
+// Normalizes the incoming coach_ids field — the form can send it as a single
+// value (one checkbox checked) or an array (multiple checked).
+function parseCoachIds(body) {
+    let raw = body.coach_ids;
+    if (raw === undefined || raw === null) {
+        // Fallback for older single-select forms still sending `coach_id`
+        raw = body.coach_id;
+    }
+    if (raw === undefined || raw === null) return [];
+    if (!Array.isArray(raw)) raw = [raw];
+    return raw.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
+}
+
 /* ======================================================
    VIEW
 ====================================================== */
@@ -70,49 +92,45 @@ router.get('/:branchName', authenticate, checkRole(['superadmin','admin','coach'
    CREATE CLASS
 ====================================================== */
 router.post('/:branchName', authenticate, checkRole(['superadmin','admin','coach']), async (req, res) => {
+    const client = await pool.connect();
     try {
         const branchName = req.params.branchName;
-        const {
-            class_name,
-            coach_id,
-            day_of_week,
-            start_time,
-            end_time
-        } = req.body;
+        const { class_name, day_of_week, start_time, end_time } = req.body;
+        const coachIds = parseCoachIds(req.body);
 
-        // Overlap check (same coach + same day)
-        const overlap = await pool.query(`
-            SELECT 1 FROM classes_schedule
-            WHERE coach_id = $1
-              AND day_of_week = $2
-              AND (start_time < $4 AND end_time > $3)
-        `, [coach_id, day_of_week, start_time, end_time]);
-
-        if (overlap.rows.length) {
-            return res.status(400).json({
-                success:false,
-                message:'Overlapping class for this coach on same day'
-            });
+        if (coachIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'Select at least one coach' });
         }
 
-        await pool.query(`
+        await client.query('BEGIN');
+
+        // classes_schedule.coach_id stays populated with the first selected
+        // coach as the "primary" coach — this keeps existing payment/payroll
+        // logic elsewhere in the app working unchanged.
+        const insertResult = await client.query(`
             INSERT INTO classes_schedule
             (class_name, coach_id, branch_name, day_of_week, start_time, end_time)
             VALUES ($1,$2,$3,$4,$5,$6)
-        `, [
-            class_name,
-            coach_id,
-            branchName,
-            day_of_week,
-            start_time,
-            end_time
-        ]);
+            RETURNING class_id
+        `, [class_name, coachIds[0], branchName, day_of_week, start_time, end_time]);
 
-        res.json({ success:true });
+        const classId = insertResult.rows[0].class_id;
 
+        for (const coachId of coachIds) {
+            await client.query(
+                `INSERT INTO class_coaches (class_id, coach_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                [classId, coachId]
+            );
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error(err);
-        res.status(500).json({ success:false });
+        res.status(500).json({ success: false });
+    } finally {
+        client.release();
     }
 });
 
@@ -120,55 +138,54 @@ router.post('/:branchName', authenticate, checkRole(['superadmin','admin','coach
    UPDATE CLASS
 ====================================================== */
 router.put('/:branchName/:id', authenticate, checkRole(['superadmin','admin','coach']), async (req, res) => {
-    const {
-        class_name,
-        coach_id,
-        day_of_week,
-        start_time,
-        end_time
-    } = req.body;
+    const client = await pool.connect();
+    try {
+        const { class_name, day_of_week, start_time, end_time } = req.body;
+        const coachIds = parseCoachIds(req.body);
 
-    const overlap = await pool.query(`
-        SELECT 1 FROM classes_schedule
-        WHERE coach_id = $1
-          AND day_of_week = $2
-          AND class_id != $3
-          AND (start_time < $5 AND end_time > $4)
-    `, [coach_id, day_of_week, req.params.id, start_time, end_time]);
+        if (coachIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'Select at least one coach' });
+        }
 
-    if (overlap.rows.length) {
-        return res.status(400).json({
-            success:false,
-            message:'Overlapping class'
-        });
+        await client.query('BEGIN');
+
+        await client.query(`
+            UPDATE classes_schedule
+            SET class_name=$1,
+                coach_id=$2,
+                day_of_week=$3,
+                start_time=$4,
+                end_time=$5,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE class_id=$6
+        `, [class_name, coachIds[0], day_of_week, start_time, end_time, req.params.id]);
+
+        // Simplest correct approach for a small join table: wipe and re-insert
+        // the coach set for this class rather than diffing old vs new.
+        await client.query(`DELETE FROM class_coaches WHERE class_id = $1`, [req.params.id]);
+        for (const coachId of coachIds) {
+            await client.query(
+                `INSERT INTO class_coaches (class_id, coach_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+                [req.params.id, coachId]
+            );
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ success: false });
+    } finally {
+        client.release();
     }
-
-    await pool.query(`
-        UPDATE classes_schedule
-        SET class_name=$1,
-            coach_id=$2,
-            day_of_week=$3,
-            start_time=$4,
-            end_time=$5,
-            updated_at=CURRENT_TIMESTAMP
-        WHERE class_id=$6
-    `, [
-        class_name,
-        coach_id,
-        day_of_week,
-        start_time,
-        end_time,
-        req.params.id
-    ]);
-
-    res.json({ success:true });
 });
 
 /* ======================================================
    DELETE CLASS
 ====================================================== */
 router.delete('/:branchName/:id', authenticate, checkRole(['superadmin','admin','coach']), async (req, res) => {
-    const branchName = req.params.branchName;
+    // class_coaches rows are removed automatically via ON DELETE CASCADE
     await pool.query(
         `DELETE FROM classes_schedule WHERE class_id=$1`,
         [req.params.id]

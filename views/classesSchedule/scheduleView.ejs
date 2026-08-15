@@ -18,7 +18,7 @@
                         <tr>
                             <th>Day</th>
                             <th>Time</th>
-                            <th>Coach</th>
+                            <th>Coach(es)</th>
                             <th>Branch</th>
                             <th>Class Name</th>
                             <th>Actions</th>
@@ -29,13 +29,13 @@
                             <tr>
                                 <td><%= c.day_of_week %></td>
                                 <td><%= c.start_time.slice(0,5) %> - <%= c.end_time.slice(0,5) %></td>
-                                <td><%= c.first_name %> <%= c.last_name %></td>
+                                <td><%= c.coaches.map(co => `${co.first_name} ${co.last_name}`).join(', ') %></td>
                                 <td><%= c.branch_name %></td>
                                 <td><%= c.class_name %></td>
                                 <td>
                                     <button class="btn btn-sm btn-info edit-class"
                                         data-id="<%= c.class_id %>"
-                                        data-coach="<%= c.coach_id %>"
+                                        data-coaches='<%- JSON.stringify(c.coaches.map(co => co.coach_id)) %>'
                                         data-branch="<%= c.branch_name %>"
                                         data-day="<%= c.day_of_week %>"
                                         data-start="<%= c.start_time %>"
@@ -65,13 +65,15 @@
                     <div class="modal-body">
                         <form id="addClassForm">
                             <div class="mb-3">
-                                <label class="form-label">Coach</label>
-                                <select class="form-select" name="coach_id" required>
-                                    <option value="">Select Coach</option>
+                                <label class="form-label">Coach(es)</label>
+                                <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
                                     <% coaches.forEach(c => { %>
-                                        <option value="<%= c.coach_id %>"><%= c.first_name %> <%= c.last_name %></option>
+                                        <div class="form-check">
+                                            <input class="form-check-input add-coach-checkbox" type="checkbox" value="<%= c.coach_id %>" id="add_coach_<%= c.coach_id %>">
+                                            <label class="form-check-label" for="add_coach_<%= c.coach_id %>"><%= c.first_name %> <%= c.last_name %></label>
+                                        </div>
                                     <% }) %>
-                                </select>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Branch</label>
@@ -127,13 +129,15 @@
                         <form id="editClassForm">
                             <input type="hidden" name="class_id" id="edit_class_id">
                             <div class="mb-3">
-                                <label class="form-label">Coach</label>
-                                <select class="form-select" name="coach_id" id="edit_coach_id" required>
-                                    <option value="">Select Coach</option>
+                                <label class="form-label">Coach(es)</label>
+                                <div class="border rounded p-2" style="max-height: 160px; overflow-y: auto;">
                                     <% coaches.forEach(c => { %>
-                                        <option value="<%= c.coach_id %>"><%= c.first_name %> <%= c.last_name %></option>
+                                        <div class="form-check">
+                                            <input class="form-check-input edit-coach-checkbox" type="checkbox" value="<%= c.coach_id %>" id="edit_coach_<%= c.coach_id %>">
+                                            <label class="form-check-label" for="edit_coach_<%= c.coach_id %>"><%= c.first_name %> <%= c.last_name %></label>
+                                        </div>
                                     <% }) %>
-                                </select>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Branch</label>
@@ -185,6 +189,15 @@
             document.getElementById('saveClassBtn').addEventListener('click', function() {
                 const form = document.getElementById('addClassForm');
                 const data = Object.fromEntries(new FormData(form).entries());
+
+                data.coach_ids = Array.from(document.querySelectorAll('.add-coach-checkbox:checked'))
+                    .map(cb => cb.value);
+
+                if (data.coach_ids.length === 0) {
+                    alert('Select at least one coach');
+                    return;
+                }
+
                 fetch(`/classesSchedule/schedule/<%= branchName %>`, {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
@@ -199,12 +212,18 @@
                 btn.addEventListener('click',()=>{
                     const data = btn.dataset;
                     document.getElementById('edit_class_id').value = data.id;
-                    document.getElementById('edit_coach_id').value = data.coach;
                     document.getElementById('edit_branch_name').value = data.branch;
                     document.getElementById('edit_day_of_week').value = data.day;
                     document.getElementById('edit_class_name').value = data.name;
                     document.getElementById('edit_start_time').value = data.start.slice(0,5);
                     document.getElementById('edit_end_time').value = data.end.slice(0,5);
+
+                    // Check the boxes matching this class's current coaches
+                    const currentCoachIds = JSON.parse(data.coaches).map(String);
+                    document.querySelectorAll('.edit-coach-checkbox').forEach(cb => {
+                        cb.checked = currentCoachIds.includes(cb.value);
+                    });
+
                     new bootstrap.Modal(document.getElementById('editClassModal')).show();
                 });
             });
@@ -213,6 +232,15 @@
             document.getElementById('updateClassBtn').addEventListener('click', function(){
                 const form = document.getElementById('editClassForm');
                 const data = Object.fromEntries(new FormData(form).entries());
+
+                data.coach_ids = Array.from(document.querySelectorAll('.edit-coach-checkbox:checked'))
+                    .map(cb => cb.value);
+
+                if (data.coach_ids.length === 0) {
+                    alert('Select at least one coach');
+                    return;
+                }
+
                 fetch(`/classesSchedule/schedule/<%= branchName %>/${data.class_id}`, {
                     method:'PUT',
                     headers:{'Content-Type':'application/json'},
