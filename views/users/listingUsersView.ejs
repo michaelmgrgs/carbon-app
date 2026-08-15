@@ -10,8 +10,8 @@
                 <h1>Users Listing</h1>
 
                 <!-- User Search Filter -->
-                <label for="userFilter">Filter by Name:</label>
-                <input type="text" id="userFilter" name="userFilter" oninput="filterUsers()">
+                <label for="userFilter">Filter by Name or ID:</label>
+                <input type="text" id="userFilter" name="userFilter" oninput="filterUsers()" placeholder="Search by name or user ID...">
                 
                 <div class="users-table">
                     <table border="1">
@@ -35,7 +35,7 @@
                                     <td><%= user.phone_number %></td>
                                     <td><%= user.email %></td>
                                     <td><%= user.residential_area %></td>
-                                    <td class="action-links" style="min-width: 145px;">
+                                    <td class="action-links" style="min-width: 140px;">
                                         <a href="/users/listing/view/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" title="View"><i class="fa-regular fa-eye"></i></a>
                                         <a href="/users/listing/edit/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a>
                                         <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
@@ -53,22 +53,28 @@
     </div>
 
     <script>
-        // Filter Users Function
+        // Filter Users Function - Now supports both Name and User ID
         function filterUsers() {
             const input = document.getElementById('userFilter');
-            const filter = input.value.toUpperCase();
+            const filter = input.value.toUpperCase().trim();
             const tableBody = document.getElementById('userTableBody');
             const rows = tableBody.getElementsByTagName('tr');
 
             for (let i = 0; i < rows.length; i++) {
+                const userId = rows[i].getElementsByTagName('td')[0];
                 const firstName = rows[i].getElementsByTagName('td')[1];
                 const lastName = rows[i].getElementsByTagName('td')[2];
 
-                if (firstName && lastName) {
-                    const textValue = (firstName.textContent || firstName.innerText) + ' ' +
+                if (userId && firstName && lastName) {
+                    const userIdValue = userId.textContent || userId.innerText;
+                    const nameValue = (firstName.textContent || firstName.innerText) + ' ' +
                                     (lastName.textContent || lastName.innerText);
 
-                    if (textValue.toUpperCase().indexOf(filter) > -1) {
+                    // Check if filter matches User ID or Name
+                    const matchesId = userIdValue.toUpperCase().indexOf(filter) > -1;
+                    const matchesName = nameValue.toUpperCase().indexOf(filter) > -1;
+
+                    if (matchesId || matchesName) {
                         rows[i].style.display = '';
                     } else {
                         rows[i].style.display = 'none';
