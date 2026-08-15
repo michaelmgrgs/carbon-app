@@ -35,7 +35,7 @@
                                     <td><%= user.phone_number %></td>
                                     <td><%= user.email %></td>
                                     <td><%= user.residential_area %></td>
-                                    <td class="action-links">
+                                    <td class="action-links" style="min-width: 145px;">
                                         <a href="/users/listing/view/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" title="View"><i class="fa-regular fa-eye"></i></a>
                                         <a href="/users/listing/edit/<%= user.id %>/<%= branchName %>?branch=<%= branchName %>" title="Edit"><i class="fa-regular fa-pen-to-square"></i></a>
                                         <% if (loggedInUser && loggedInUser.role === 'superadmin') { %>
