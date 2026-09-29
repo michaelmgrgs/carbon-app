@@ -52,4 +52,30 @@ router.post('/change-password', authenticateMobile, async (req, res) => {
   }
 });
 
+// DELETE /api/mobile/profile
+// Body: { password }
+// Member deletes their own account from inside the app (required by the App Store).
+// Same hard delete the admin panel does; mobile tables cascade on users(id).
+router.delete('/', authenticateMobile, async (req, res) => {
+  const { password } = req.body || {};
+  if (!password) return res.status(400).json({ error: 'Password is required' });
+
+  try {
+    const result = await pool.query('SELECT password, role FROM users WHERE id = $1', [req.mobileUser.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    if (!['user', 'coach'].includes(result.rows[0].role)) {
+      return res.status(403).json({ error: 'This account cannot be deleted from the app' });
+    }
+
+    const valid = await bcrypt.compare(password, result.rows[0].password);
+    if (!valid) return res.status(400).json({ error: 'Password is incorrect' });
+
+    await pool.query('DELETE FROM users WHERE id = $1', [req.mobileUser.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Mobile delete account error:', err);
+    res.status(500).json({ error: 'Could not delete your account. Please contact the gym front desk.' });
+  }
+});
+
 module.exports = router;
