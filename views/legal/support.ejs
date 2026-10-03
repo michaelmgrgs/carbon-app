@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Support – Carbon</title>
+  <%- include('style') %>
+</head>
+<body>
+  <main>
+    <h1>Carbon App Support</h1>
+    <p>Need help with the Carbon member app? We're here.</p>
+
+    <h2>Contact</h2>
+    <p>
+      <% if (contactEmail) { %>Email <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a>, or speak<% } else { %>Speak<% } %>
+      to the front desk at any Carbon branch.
+    </p>
+
+    <h2>Common questions</h2>
+    <h3>I forgot my password</h3>
+    <p>On the login screen tap <em>Forgot password</em>. We'll email you a 6-digit code to set a new one.</p>
+
+    <h3>The QR check-in doesn't work</h3>
+    <p>Make sure you've allowed camera access for Carbon in your phone's settings and that you have an active package
+      with sessions left. If it still fails, the front desk can check you in.</p>
+
+    <h3>I'm not getting notifications</h3>
+    <p>Check that notifications are allowed for Carbon in your phone's settings, and that they're switched on in
+      <em>Profile → Preferences</em> in the app.</p>
+
+    <h3>How do I delete my account?</h3>
+    <p>In the app go to <em>Profile → Delete account</em> and confirm with your password. You can also ask the front
+      desk to delete it for you.</p>
+
+    <p class="muted"><a href="/privacy">Privacy Policy</a></p>
+  </main>
+</body>
+</html>

@@ -80,6 +80,11 @@ app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
+// Public pages linked from the App Store / Google Play listings (no login)
+const legalPageData = { contactEmail: process.env.SUPPORT_EMAIL || '', lastUpdated: 'October 3, 2026' };
+app.get('/privacy', (req, res) => res.render('legal/privacy', legalPageData));
+app.get('/support', (req, res) => res.render('legal/support', legalPageData));
+
 // Routes
 app.use('/registration', RegistrationComponent);
 app.use('/login', LoginComponent);
