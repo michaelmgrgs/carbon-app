@@ -113,6 +113,7 @@ router.post('/requests/:id/decline', authenticateMobile, async (req, res) => {
     sendPushToUser(result.rows[0].user_id, {
       title: 'Package request update',
       body: 'Your package request could not be confirmed. Please contact the front desk.',
+      data: { type: 'package_request' },
     }).catch((e) => console.error('Push error:', e));
 
     res.json({ success: true });
@@ -154,6 +155,7 @@ router.post('/requests/:id/approve', authenticateMobile, async (req, res) => {
     sendPushToUser(user.id, {
       title: 'Package activated! 🎉',
       body: `Your ${pkg.name} package is now active.`,
+      data: { type: 'package_request' },
     }).catch((e) => console.error('Push error:', e));
 
     res.json({ success: true });

@@ -56,14 +56,14 @@ router.post('/', authenticate, checkRole(['superadmin', 'admin']), (req, res) =>
       : (imageUrl || null);
 
     try {
-      await pool.query(
+      const inserted = await pool.query(
         `INSERT INTO news (title, body, image_url, branch_name, is_pinned, send_push)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         [title, body, finalImageUrl, branchName || null, isPinned === 'on', sendPush === 'on']
       );
 
       if (sendPush === 'on') {
-        sendPushToAll({ title, body, branchName: branchName || null }).catch((e) => console.error('Push error:', e));
+        sendPushToAll({ title, body, branchName: branchName || null, data: { type: 'news', newsId: inserted.rows[0].id } }).catch((e) => console.error('Push error:', e));
       }
 
       res.redirect('/news-admin?success=1');

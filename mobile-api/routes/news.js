@@ -24,6 +24,25 @@ router.get('/', authenticateMobile, async (req, res) => {
   }
 });
 
+// GET /api/mobile/news/:id — single post, opened from a push notification
+router.get('/:id', authenticateMobile, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT n.id, n.title, n.body, n.image_url, n.branch_name, n.is_pinned, n.created_at
+       FROM news n
+       WHERE n.id = $1 AND (n.branch_name IS NULL OR n.branch_name IN (
+         SELECT DISTINCT branch_name FROM user_subscriptions WHERE user_id = $2
+       ))`,
+      [req.params.id, req.mobileUser.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Update not found' });
+    res.json({ news: result.rows[0] });
+  } catch (err) {
+    console.error('Error fetching news item:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // POST /api/mobile/news — staff-only: create a news post (optionally push it)
 // Reuses the same JWT auth; restrict to admin/superadmin/coach roles.
 router.post('/', authenticateMobile, async (req, res) => {
@@ -41,7 +60,7 @@ router.post('/', authenticateMobile, async (req, res) => {
     );
 
     if (sendPush) {
-      sendPushToAll({ title, body, branchName: branchName || null }).catch((e) => console.error('Push error:', e));
+      sendPushToAll({ title, body, branchName: branchName || null, data: { type: 'news', newsId: result.rows[0].id } }).catch((e) => console.error('Push error:', e));
     }
 
     res.status(201).json({ news: result.rows[0] });
