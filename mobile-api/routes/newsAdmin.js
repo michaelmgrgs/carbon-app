@@ -29,18 +29,74 @@ const upload = multer({
   },
 });
 
-// GET /news-admin — the "Post an Update" form
-router.get('/', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
+const staffOnly = [authenticate, checkRole(['superadmin', 'admin'])];
+
+// Public URL for an uploaded photo, or null.
+function uploadedImageUrl(req) {
+  if (!req.file) return null;
+  return `${(process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`)}/images/news/${req.file.filename}`;
+}
+
+// GET /news-admin — the "Post an Update" form + all posts
+router.get('/', staffOnly, async (req, res) => {
   const result = await pool.query(
-    'SELECT id, title, image_url, branch_name, is_pinned, created_at FROM news ORDER BY created_at DESC LIMIT 20'
+    'SELECT id, title, image_url, branch_name, is_pinned, created_at FROM news ORDER BY created_at DESC LIMIT 200'
   );
-  res.render('news/post', { recentNews: result.rows, success: req.query.success, error: req.query.error });
+  res.render('news/post', { item: null, recentNews: result.rows, success: req.query.success, error: req.query.error });
+});
+
+// GET /news-admin/:id/edit — same form, filled in with an existing post
+router.get('/:id/edit', staffOnly, async (req, res) => {
+  const result = await pool.query('SELECT * FROM news WHERE id = $1', [req.params.id]);
+  if (result.rows.length === 0) return res.redirect('/news-admin?error=' + encodeURIComponent('That update no longer exists.'));
+  res.render('news/post', { item: result.rows[0], recentNews: [], success: null, error: req.query.error });
+});
+
+// POST /news-admin/:id — save edits. Doesn't re-send a push notification.
+router.post('/:id', staffOnly, (req, res) => {
+  upload.single('imageFile')(req, res, async (uploadErr) => {
+    const editUrl = `/news-admin/${req.params.id}/edit`;
+    if (uploadErr) return res.redirect(editUrl + '?error=' + encodeURIComponent(uploadErr.message));
+
+    const { title, body, imageUrl, branchName, isPinned, removeImage } = req.body;
+    if (!title || !body) return res.redirect(editUrl + '?error=' + encodeURIComponent('Title and message are required'));
+
+    try {
+      const current = await pool.query('SELECT image_url FROM news WHERE id = $1', [req.params.id]);
+      if (current.rows.length === 0) return res.redirect('/news-admin?error=' + encodeURIComponent('That update no longer exists.'));
+
+      let finalImageUrl = current.rows[0].image_url;
+      if (removeImage === 'on') finalImageUrl = null;
+      if (imageUrl) finalImageUrl = imageUrl;
+      if (req.file) finalImageUrl = uploadedImageUrl(req);
+
+      await pool.query(
+        `UPDATE news SET title = $1, body = $2, image_url = $3, branch_name = $4, is_pinned = $5 WHERE id = $6`,
+        [title, body, finalImageUrl, branchName || null, isPinned === 'on', req.params.id]
+      );
+      res.redirect('/news-admin?success=updated');
+    } catch (err) {
+      console.error('Error updating news:', err);
+      res.redirect(editUrl + '?error=' + encodeURIComponent('Something went wrong saving the update.'));
+    }
+  });
+});
+
+// POST /news-admin/:id/delete
+router.post('/:id/delete', staffOnly, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM news WHERE id = $1', [req.params.id]);
+    res.redirect('/news-admin?success=deleted');
+  } catch (err) {
+    console.error('Error deleting news:', err);
+    res.redirect('/news-admin?error=' + encodeURIComponent('Something went wrong deleting the update.'));
+  }
 });
 
 // POST /news-admin — create a news post. Accepts either an uploaded photo
 // (preferred) or a pasted image URL — whichever is provided is used;
 // an uploaded file always takes priority if both are given.
-router.post('/', authenticate, checkRole(['superadmin', 'admin']), (req, res) => {
+router.post('/', staffOnly, (req, res) => {
   upload.single('imageFile')(req, res, async (uploadErr) => {
     if (uploadErr) {
       return res.redirect('/news-admin?error=' + encodeURIComponent(uploadErr.message));
@@ -51,9 +107,7 @@ router.post('/', authenticate, checkRole(['superadmin', 'admin']), (req, res) =>
       return res.redirect('/news-admin?error=' + encodeURIComponent('Title and message are required'));
     }
 
-    const finalImageUrl = req.file
-      ? `${(process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`)}/images/news/${req.file.filename}`
-      : (imageUrl || null);
+    const finalImageUrl = uploadedImageUrl(req) || imageUrl || null;
 
     try {
       const inserted = await pool.query(
