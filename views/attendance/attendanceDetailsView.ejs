@@ -171,8 +171,15 @@ $(document).ready(function () {
         });
     }
 
+    /* ---------- Live refresh when a member checks in from the app ---------- */
+    let tableLoaded = false;
+    window.addEventListener('carbon:checkin', function (ev) {
+        if (tableLoaded && ev.detail.status === 'checked_in') filterData();
+    });
+
     /* ---------- Update Table ---------- */
     function updateTable(data) {
+        tableLoaded = true;
         const tbody = $('#attendanceTable tbody');
         tbody.empty();
 

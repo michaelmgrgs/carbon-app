@@ -1,0 +1,83 @@
+<%# Live check-in pop-ups for every admin page. Listens to /attendance/desk/live/events
+    and shows a toast (top right) plus a macOS/Windows notification when the browser allows it.
+    Pages can also react: window.addEventListener('carbon:checkin', e => ...). %>
+<style>
+  #checkin-toasts { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; width: 320px; max-width: calc(100vw - 32px); }
+  .checkin-toast {
+    background: #1c1d1c; color: #fff; border-radius: 12px; padding: 12px 14px; border-left: 4px solid #3BB273;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35); font: 14px/1.4 -apple-system, 'Segoe UI', Roboto, sans-serif;
+    animation: checkin-in .25s ease-out; cursor: pointer;
+  }
+  .checkin-toast.duplicate { border-left-color: #F2A93B; }
+  .checkin-toast.no_package { border-left-color: #E8483D; }
+  .checkin-toast strong { display: block; margin-bottom: 2px; }
+  .checkin-toast span { color: #b5b8bb; font-size: 13px; }
+  #checkin-enable {
+    position: fixed; bottom: 16px; right: 16px; z-index: 9998; background: #D6362F; color: #fff; border: 0;
+    border-radius: 999px; padding: 10px 16px; font: 600 13px -apple-system, 'Segoe UI', Roboto, sans-serif; cursor: pointer;
+  }
+  @keyframes checkin-in { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+</style>
+<div id="checkin-toasts"></div>
+<script>
+(function () {
+  if (window.__carbonLiveCheckins || !window.EventSource) return;
+  window.__carbonLiveCheckins = true;
+
+  var TITLES = { checked_in: '✅ Checked in', duplicate: '⚠️ Double scan blocked', no_package: '❌ No active package' };
+
+  function describe(e) {
+    var who = (e.name || ('Member #' + e.userId)) + ' · ' + e.branchName;
+    if (e.status === 'checked_in') return who + ' · ' + e.sessionsLeft + ' sessions left';
+    if (e.status === 'duplicate') return who + ' · already checked in less than 30 min ago';
+    return who + ' · tried to check in without sessions';
+  }
+
+  function toast(e) {
+    var box = document.getElementById('checkin-toasts');
+    if (!box) return;
+    var el = document.createElement('div');
+    el.className = 'checkin-toast ' + e.status;
+    var title = document.createElement('strong');
+    title.textContent = TITLES[e.status] || 'Check-in';
+    var body = document.createElement('span');
+    body.textContent = describe(e);
+    el.appendChild(title); el.appendChild(body);
+    el.onclick = function () { el.remove(); };
+    box.prepend(el);
+    setTimeout(function () { el.remove(); }, e.status === 'checked_in' ? 6000 : 12000);
+    while (box.children.length > 5) box.lastChild.remove();
+  }
+
+  function systemNotification(e) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    try { new Notification(TITLES[e.status] || 'Carbon check-in', { body: describe(e), tag: 'carbon-' + e.at + e.userId }); } catch (err) {}
+  }
+
+  // Browsers only allow asking for notification permission after a click.
+  function offerSystemNotifications() {
+    if (!('Notification' in window) || Notification.permission !== 'default') return;
+    try { if (localStorage.getItem('carbonNotifDismissed')) return; } catch (err) {}
+    var btn = document.createElement('button');
+    btn.id = 'checkin-enable';
+    btn.textContent = '🔔 Turn on check-in notifications';
+    btn.onclick = function () {
+      Notification.requestPermission().finally(function () { btn.remove(); });
+      try { localStorage.setItem('carbonNotifDismissed', '1'); } catch (err) {}
+    };
+    document.body.appendChild(btn);
+  }
+
+  var source = new EventSource('/attendance/desk/live/events');
+  source.onmessage = function (msg) {
+    var e;
+    try { e = JSON.parse(msg.data); } catch (err) { return; }
+    toast(e);
+    systemNotification(e);
+    window.dispatchEvent(new CustomEvent('carbon:checkin', { detail: e }));
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', offerSystemNotifications);
+  else offerSystemNotifications();
+})();
+</script>

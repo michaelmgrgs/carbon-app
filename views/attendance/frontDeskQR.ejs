@@ -2,61 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carbon Check-In — <%= branchName %></title>
   <style>
+    * { box-sizing: border-box; }
     body {
-      margin: 0; height: 100vh; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: radial-gradient(circle at center, #202221 0%, #141514 100%);
+      margin: 0; min-height: 100vh; background: radial-gradient(circle at center, #202221 0%, #141514 100%);
       font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #fff;
+      display: flex; gap: 32px; align-items: flex-start; justify-content: center; padding: 40px 16px; flex-wrap: wrap;
     }
-    .card {
-      background: #1c1d1c; border: 1px solid #2e302f; border-radius: 24px;
-      padding: 48px 64px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: 1px; }
+    .card { background: #1c1d1c; border: 1px solid #2e302f; border-radius: 24px; padding: 36px; text-align: center; }
+    .qr-card { width: 460px; max-width: 100%; }
+    h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: 1px; text-transform: uppercase; }
     .branch { color: #D6362F; font-weight: 700; }
-    p.subtitle { color: #8A8D90; margin-top: 0; margin-bottom: 28px; }
-    #qr-wrap {
-      width: 340px; height: 340px; background: #fff; border-radius: 16px;
-      display: flex; align-items: center; justify-content: center; margin: 0 auto;
-      padding: 16px; box-sizing: border-box;
+    p.subtitle { color: #8A8D90; margin: 0 0 24px; }
+    .qr { background: #fff; border-radius: 16px; padding: 16px; }
+    .qr img { width: 100%; display: block; }
+    .meta { color: #8A8D90; font-size: 13px; margin-top: 14px; }
+    .actions { display: flex; gap: 10px; margin-top: 22px; }
+    .actions form { flex: 1; display: flex; }
+    button { flex: 1; padding: 13px; border-radius: 999px; font-size: 15px; font-weight: 700; cursor: pointer; border: 0; }
+    .print { background: #D6362F; color: #fff; }
+    .replace { background: transparent; color: #E8483D; border: 1px solid #E8483D; }
+    .banner { background: #3BB27322; color: #3BB273; border-radius: 10px; padding: 10px 14px; font-size: 14px; margin-bottom: 18px; }
+    .feed-card { width: 420px; max-width: 100%; text-align: left; }
+    .feed-card h2 { font-size: 16px; color: #8A8D90; text-transform: uppercase; letter-spacing: .5px; margin: 0 0 4px; }
+    .feed-card .hint { color: #8A8D90; font-size: 13px; margin: 0 0 16px; }
+    #feed { list-style: none; margin: 0; padding: 0; }
+    #feed li { padding: 10px 0; border-top: 1px solid #2e302f; font-size: 14px; display: flex; gap: 10px; }
+    #feed li time { color: #8A8D90; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+    #feed li.duplicate b { color: #F2A93B; }
+    #feed li.no_package b { color: #E8483D; }
+    #feed li.checked_in b { color: #3BB273; }
+    #empty { color: #8A8D90; font-size: 14px; }
+
+    /* Printed version: just the branch name, the code and one instruction line. */
+    @media print {
+      body { background: #fff; color: #000; padding: 0; display: block; }
+      .card { border: 0; background: #fff; }
+      .qr-card { width: 100%; padding: 40px 0; }
+      .qr { padding: 0; width: 70%; margin: 0 auto; }
+      p.subtitle { color: #333; font-size: 20px; }
+      .feed-card, .actions, .meta, .banner, #checkin-toasts, #checkin-enable { display: none !important; }
     }
-    #qr-wrap img { width: 100%; height: 100%; }
-    .bar { height: 4px; width: 340px; background: #2e302f; border-radius: 4px; margin-top: 20px; overflow: hidden; }
-    .bar-fill { height: 100%; background: #D6362F; width: 100%; transition: width linear; }
-    .hint { margin-top: 20px; color: #8A8D90; font-size: 14px; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Scan to check in — <span class="branch"><%= branchName %></span></h1>
-    <p class="subtitle">Open the Carbon app and tap "Scan" on the Attendance tab</p>
-    <div id="qr-wrap"><img id="qr-img" alt="QR code" /></div>
-    <div class="bar"><div class="bar-fill" id="bar-fill"></div></div>
-    <p class="hint">This code refreshes automatically for security</p>
+  <div class="card qr-card">
+    <% if (replaced) { %><div class="banner">✓ New code created. The old code no longer works — print this one.</div><% } %>
+    <h1>Carbon <span class="branch"><%= branchName %></span></h1>
+    <p class="subtitle">Open the Carbon app → Scan &amp; Check In</p>
+    <div class="qr"><img src="<%= qrDataUrl %>" alt="Check-in code for <%= branchName %>"></div>
+    <div class="meta">Code created <%= new Date(updatedAt).toLocaleString('en-GB', { timeZone: 'Africa/Cairo', dateStyle: 'medium', timeStyle: 'short' }) %></div>
+    <div class="actions">
+      <button class="print" onclick="window.print()">Print</button>
+      <form method="POST" action="/attendance/desk/<%= encodeURIComponent(branchName) %>/replace"
+            onsubmit="return confirm('Replace this code? The current printed code will stop working immediately, so you will need to print the new one.');">
+        <button type="submit" class="replace">Replace code</button>
+      </form>
+    </div>
   </div>
 
+  <div class="card feed-card">
+    <h2>Live check-ins</h2>
+    <p class="hint">Updates instantly while this page is open.</p>
+    <ul id="feed"></ul>
+    <p id="empty">Waiting for the first scan…</p>
+  </div>
+
+  <%- include('../includes/liveCheckins') %>
   <script>
-    const branchName = <%- JSON.stringify(branchName) %>;
-    const refreshMs = <%- refreshMs %>;
-
-    async function loadQR() {
-      const res = await fetch(`/attendance/desk/${encodeURIComponent(branchName)}/qr-image`);
-      const data = await res.json();
-      document.getElementById('qr-img').src = data.dataUrl;
-
-      const fill = document.getElementById('bar-fill');
-      fill.style.transition = 'none';
-      fill.style.width = '100%';
-      requestAnimationFrame(() => {
-        fill.style.transition = `width ${refreshMs}ms linear`;
-        fill.style.width = '0%';
-      });
-    }
-
-    loadQR();
-    setInterval(loadQR, refreshMs);
+    var branchName = <%- JSON.stringify(branchName) %>;
+    var LABELS = { checked_in: 'Checked in', duplicate: 'Double scan blocked', no_package: 'No active package' };
+    window.addEventListener('carbon:checkin', function (ev) {
+      var e = ev.detail;
+      if (e.branchName !== branchName) return;
+      document.getElementById('empty').style.display = 'none';
+      var li = document.createElement('li');
+      li.className = e.status;
+      var time = document.createElement('time');
+      time.textContent = new Date(e.at).toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' });
+      var text = document.createElement('div');
+      var label = document.createElement('b');
+      label.textContent = LABELS[e.status] || e.status;
+      text.appendChild(label);
+      text.appendChild(document.createTextNode(' · ' + (e.name || 'Member #' + e.userId) +
+        (e.status === 'checked_in' ? ' · ' + e.sessionsLeft + ' left' : '')));
+      li.appendChild(time); li.appendChild(text);
+      document.getElementById('feed').prepend(li);
+    });
   </script>
 </body>
 </html>

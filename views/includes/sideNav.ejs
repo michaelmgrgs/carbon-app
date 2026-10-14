@@ -112,4 +112,7 @@
         </div>
     </div>
 </div>
+<% if (['superadmin', 'admin', 'sales'].includes(loggedInUser.role)) { %>
+<%- include('liveCheckins') %>
+<% } %>
 <% } %>
