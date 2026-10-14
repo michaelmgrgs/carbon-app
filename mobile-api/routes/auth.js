@@ -108,7 +108,8 @@ router.post('/logout', async (req, res) => {
 router.post('/register', async (req, res) => {
   const { firstName, lastName, phoneNumber, email, password, dateOfBirth, gender, residentialArea } = req.body;
 
-  if (!firstName || !lastName || !email || !password || !phoneNumber) {
+  // gender is NOT NULL in the users table, so a missing one used to surface as a 500.
+  if (!firstName || !lastName || !email || !password || !phoneNumber || !gender) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
