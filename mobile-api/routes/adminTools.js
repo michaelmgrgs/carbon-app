@@ -1,25 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, checkRole } = require('../../components/authMiddleware/authMiddleware');
-const { runInactivityCheck, INACTIVE_AFTER_DAYS } = require('../services/inactivityReminders');
+const {
+  runInactivityCheck, getRecentReminders, INACTIVE_AFTER_DAYS, REMIND_COOLDOWN_DAYS,
+} = require('../services/inactivityReminders');
 
-// GET /admin-tools/run-inactivity-check — staff-only, for testing.
-// Runs the same check the daily 9am job runs, immediately, and shows how many
-// reminders went out. Safe to click more than once — the cooldown still applies.
-router.get('/run-inactivity-check', authenticate, checkRole(['superadmin', 'admin']), async (req, res) => {
+const staffOnly = [authenticate, checkRole(['superadmin', 'admin'])];
+
+async function renderPage(res, justSent) {
+  const recent = await getRecentReminders();
+  res.render('mobileHub/inactivity', { justSent, recent, INACTIVE_AFTER_DAYS, REMIND_COOLDOWN_DAYS });
+}
+
+// GET /admin-tools/inactivity — who got an inactivity reminder recently.
+router.get('/inactivity', staffOnly, async (req, res) => {
   try {
-    const sentCount = await runInactivityCheck();
-    res.send(
-      `<body style="background:#141514;color:#fff;font-family:sans-serif;padding:40px;">` +
-      `<h2>Inactivity check complete</h2>` +
-      `<p>${sentCount} reminder(s) sent to members inactive for ${INACTIVE_AFTER_DAYS}+ days.</p>` +
-      `<p style="color:#8A8D90;">Members who already got a reminder in the last 7 days are skipped automatically.</p>` +
-      `</body>`
-    );
+    await renderPage(res, null);
+  } catch (err) {
+    console.error('Inactivity page failed:', err);
+    res.status(500).send('Something went wrong loading reminders.');
+  }
+});
+
+// POST /admin-tools/run-inactivity-check — runs the same check the daily 9am job
+// runs, right now. Safe to repeat: the cooldown still applies.
+router.post('/run-inactivity-check', staffOnly, async (req, res) => {
+  try {
+    const sent = await runInactivityCheck();
+    await renderPage(res, sent);
   } catch (err) {
     console.error('Manual inactivity check failed:', err);
     res.status(500).send('Something went wrong running the check.');
   }
 });
+
+// Old link (used to run the check on page load) — now just opens the page.
+router.get('/run-inactivity-check', staffOnly, (req, res) => res.redirect('/admin-tools/inactivity'));
 
 module.exports = router;

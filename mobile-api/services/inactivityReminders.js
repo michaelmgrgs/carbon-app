@@ -15,7 +15,8 @@ const REMIND_COOLDOWN_DAYS = 7;  // don't nag the same person more than once per
  */
 async function runInactivityCheck() {
   const query = `
-    SELECT u.id, u.first_name, MAX(a.timestamp) AS last_attendance
+    SELECT u.id, u.first_name, u.last_name, u.phone_number, MAX(a.timestamp) AS last_attendance,
+           EXISTS (SELECT 1 FROM push_tokens pt WHERE pt.user_id = u.id) AS has_app
     FROM users u
     JOIN user_subscriptions us ON us.user_id = u.id
       AND us.end_date >= CURRENT_DATE AND us.sessions_left > 0
@@ -23,7 +24,7 @@ async function runInactivityCheck() {
     LEFT JOIN inactivity_reminders ir ON ir.user_id = u.id
     WHERE u.role = 'user'
       AND (ir.last_sent_at IS NULL OR ir.last_sent_at < NOW() - INTERVAL '${REMIND_COOLDOWN_DAYS} days')
-    GROUP BY u.id, u.first_name
+    GROUP BY u.id, u.first_name, u.last_name, u.phone_number
     HAVING MAX(a.timestamp) IS NULL OR MAX(a.timestamp) < NOW() - INTERVAL '${INACTIVE_AFTER_DAYS} days'
   `;
 
@@ -46,7 +47,23 @@ async function runInactivityCheck() {
   }
 
   console.log(`Inactivity check: ${rows.length} reminder(s) sent.`);
-  return rows.length;
+  // Members reminded in this run. has_app = false means they have no device
+  // registered, so no push actually reached them (staff may want to call instead).
+  return rows;
 }
 
-module.exports = { runInactivityCheck, INACTIVE_AFTER_DAYS, REMIND_COOLDOWN_DAYS };
+// Everyone reminded within the cooldown window, newest first — for the admin page.
+async function getRecentReminders() {
+  const { rows } = await pool.query(`
+    SELECT u.id, u.first_name, u.last_name, u.phone_number, ir.last_sent_at,
+           (SELECT MAX(a.timestamp) FROM attendance a WHERE a.user_id = u.id) AS last_attendance,
+           EXISTS (SELECT 1 FROM push_tokens pt WHERE pt.user_id = u.id) AS has_app
+    FROM inactivity_reminders ir
+    JOIN users u ON u.id = ir.user_id
+    WHERE ir.last_sent_at > NOW() - INTERVAL '${REMIND_COOLDOWN_DAYS} days'
+    ORDER BY ir.last_sent_at DESC
+  `);
+  return rows;
+}
+
+module.exports = { runInactivityCheck, getRecentReminders, INACTIVE_AFTER_DAYS, REMIND_COOLDOWN_DAYS };
