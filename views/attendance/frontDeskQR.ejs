@@ -9,10 +9,14 @@
     body {
       margin: 0; min-height: 100vh; background: radial-gradient(circle at center, #202221 0%, #141514 100%);
       font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; color: #fff;
-      display: flex; gap: 32px; align-items: flex-start; justify-content: center; padding: 40px 16px; flex-wrap: wrap;
+      padding: 40px 16px;
     }
+    .page { max-width: 944px; margin: 0 auto; }
+    /* QR code on the left, live feed on the right, same height. The feed's list is
+       positioned inside its card so it scrolls on its own instead of growing the page. */
+    .layout { display: grid; grid-template-columns: 460px 1fr; gap: 24px; align-items: stretch; }
     .card { background: #1c1d1c; border: 1px solid #2e302f; border-radius: 24px; padding: 36px; text-align: center; }
-    .qr-card { width: 460px; max-width: 100%; }
+    .qr-card { min-width: 0; }
     h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: 1px; text-transform: uppercase; }
     .branch { color: #D6362F; font-weight: 700; }
     p.subtitle { color: #8A8D90; margin: 0 0 24px; }
@@ -25,7 +29,15 @@
     .print { background: #D6362F; color: #fff; }
     .replace { background: transparent; color: #E8483D; border: 1px solid #E8483D; }
     .banner { background: #3BB27322; color: #3BB273; border-radius: 10px; padding: 10px 14px; font-size: 14px; margin-bottom: 18px; }
-    .feed-card { width: 420px; max-width: 100%; text-align: left; }
+    .feed-card { position: relative; text-align: left; min-height: 420px; }
+    .feed-inner { position: absolute; inset: 36px; display: flex; flex-direction: column; }
+    .feed-scroll { flex: 1; min-height: 0; overflow-y: auto; margin-right: -12px; padding-right: 12px; }
+    .feed-scroll::-webkit-scrollbar { width: 6px; }
+    .feed-scroll::-webkit-scrollbar-thumb { background: #2e302f; border-radius: 3px; }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      .feed-card { height: 460px; }
+    }
     .feed-card h2 { font-size: 16px; color: #8A8D90; text-transform: uppercase; letter-spacing: .5px; margin: 0 0 4px; }
     .feed-card .hint { color: #8A8D90; font-size: 13px; margin: 0 0 16px; }
     #feed { list-style: none; margin: 0; padding: 0; }
@@ -38,7 +50,8 @@
 
     /* Printed version: just the branch name, the code and one instruction line. */
     @media print {
-      body { background: #fff; color: #000; padding: 0; display: block; }
+      body { background: #fff; color: #000; padding: 0; }
+      .layout { display: block; }
       .card { border: 0; background: #fff; }
       .qr-card { width: 100%; padding: 40px 0; }
       .qr { padding: 0; width: 70%; margin: 0 auto; }
@@ -48,7 +61,9 @@
   </style>
 </head>
 <body>
-  <div style="flex-basis:100%;max-width:912px;"><%- include('../mobileHub/backLink') %></div>
+  <div class="page">
+  <%- include('../mobileHub/backLink') %>
+  <div class="layout">
   <div class="card qr-card">
     <% if (replaced) { %><div class="banner">✓ New code created. The old code no longer works — print this one.</div><% } %>
     <h1>Carbon <span class="branch"><%= branchName %></span></h1>
@@ -65,10 +80,16 @@
   </div>
 
   <div class="card feed-card">
-    <h2>Live check-ins</h2>
-    <p class="hint">Updates instantly while this page is open.</p>
-    <ul id="feed"></ul>
-    <p id="empty">Waiting for the first scan…</p>
+    <div class="feed-inner">
+      <h2>Live check-ins</h2>
+      <p class="hint">Updates instantly while this page is open.</p>
+      <div class="feed-scroll">
+        <ul id="feed"></ul>
+        <p id="empty">Waiting for the first scan…</p>
+      </div>
+    </div>
+  </div>
+  </div>
   </div>
 
   <%- include('../includes/liveCheckins') %>
