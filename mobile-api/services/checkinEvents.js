@@ -42,10 +42,21 @@ async function listen() {
 }
 
 // event: { status: 'checked_in' | 'duplicate' | 'no_package', userId, name, branchName, ... }
-function publishCheckin(event) {
+// Pass the transaction's client to send it on COMMIT, so the feed shows events in
+// the order they actually happened.
+async function publishCheckin(event, client = pool) {
   const payload = JSON.stringify({ ...event, at: new Date().toISOString() });
-  pool.query('SELECT pg_notify($1, $2)', [CHANNEL, payload])
-    .catch((err) => console.error('Could not publish check-in event:', err.message));
+  const inTransaction = client !== pool;
+  try {
+    // A savepoint keeps a failed notify from aborting the caller's transaction
+    // (which would silently roll back the check-in on COMMIT).
+    if (inTransaction) await client.query('SAVEPOINT checkin_notify');
+    await client.query('SELECT pg_notify($1, $2)', [CHANNEL, payload]);
+    if (inTransaction) await client.query('RELEASE SAVEPOINT checkin_notify');
+  } catch (err) {
+    console.error('Could not publish check-in event:', err.message);
+    if (inTransaction) await client.query('ROLLBACK TO SAVEPOINT checkin_notify').catch(() => {});
+  }
 }
 
 function onCheckin(handler) {

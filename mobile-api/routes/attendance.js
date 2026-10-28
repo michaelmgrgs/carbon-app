@@ -9,6 +9,10 @@ const { publishCheckin } = require('../services/checkinEvents');
 // A second scan at the same branch within this window is refused instead of
 // using another session (members often do two classes back to back, so it's short).
 const DUPLICATE_WINDOW_MINUTES = 30;
+// Phones can send the same scan several times within a second or two. A repeat this
+// soon after a successful check-in is the same visit: answer with success, use no
+// session, and keep it out of the desk feed.
+const REPEAT_SCAN_SECONDS = 120;
 
 const cairoTime = (date) =>
   new Date(date).toLocaleTimeString('en-GB', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' });
@@ -44,8 +48,24 @@ router.post('/check-in', authenticateMobile, async (req, res) => {
       [userId, branchName, DUPLICATE_WINDOW_MINUTES]
     );
     if (recent.rows.length > 0) {
-      await client.query('ROLLBACK');
       const last = recent.rows[0].timestamp;
+      if (Date.now() - new Date(last).getTime() < REPEAT_SCAN_SECONDS * 1000) {
+        const subs = await client.query(
+          `SELECT sessions_left FROM user_subscriptions
+           WHERE user_id = $1 AND branch_name = $2 AND end_date >= CURRENT_DATE
+           ORDER BY end_date ASC LIMIT 1`,
+          [userId, branchName]
+        );
+        await client.query('ROLLBACK');
+        return res.json({
+          success: true,
+          alreadyCheckedIn: true,
+          message: `You're already checked in at ${branchName} (${cairoTime(last)}).`,
+          sessionsLeft: subs.rows[0] ? subs.rows[0].sessions_left : null,
+          checkedInAt: last,
+        });
+      }
+      await client.query('ROLLBACK');
       const nextAllowed = new Date(new Date(last).getTime() + DUPLICATE_WINDOW_MINUTES * 60 * 1000);
       publishCheckin({ status: 'duplicate', userId, name, branchName, lastCheckinAt: last });
       return res.status(409).json({
@@ -85,16 +105,15 @@ router.post('/check-in', authenticateMobile, async (req, res) => {
        VALUES ($1, $2, $3, NOW()) RETURNING attendance_id, timestamp`,
       [userId, sub.package_id, branchName]
     );
-    await client.query('COMMIT');
-
-    publishCheckin({
+    await publishCheckin({
       status: 'checked_in',
       userId,
       name,
       branchName,
       sessionsLeft: newSessionsLeft,
       attendanceId: attendanceInsert.rows[0].attendance_id,
-    });
+    }, client);
+    await client.query('COMMIT');
 
     res.json({
       success: true,
