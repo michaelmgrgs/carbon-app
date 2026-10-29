@@ -60,7 +60,8 @@ router.post('/check-in', authenticateMobile, async (req, res) => {
         return res.json({
           success: true,
           alreadyCheckedIn: true,
-          message: `You're already checked in at ${branchName} (${cairoTime(last)}).`,
+          // Same wording as a fresh check-in: to the member it's one scan, one visit.
+          message: `Checked in at ${branchName}!`,
           sessionsLeft: subs.rows[0] ? subs.rows[0].sessions_left : null,
           checkedInAt: last,
         });
