@@ -108,8 +108,10 @@ router.post('/logout', async (req, res) => {
 router.post('/register', async (req, res) => {
   const { firstName, lastName, phoneNumber, email, password, dateOfBirth, gender, residentialArea } = req.body;
 
-  // gender is NOT NULL in the users table, so a missing one used to surface as a 500.
-  if (!firstName || !lastName || !email || !password || !phoneNumber || !gender) {
+  // Only what the account needs is required (App Store guideline 5.1.1(v)). Phone,
+  // gender and area are optional; they're stored as empty strings because the users
+  // table doesn't accept NULL for gender. Staff can fill them in from the admin panel.
+  if (!firstName || !lastName || !email || !password) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -125,8 +127,8 @@ router.post('/register', async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'user', CURRENT_DATE)
       RETURNING *`;
     const result = await pool.query(insertQuery, [
-      firstName, lastName, phoneNumber, email.toLowerCase(), hashedPassword,
-      dateOfBirth || null, gender || null, residentialArea || null,
+      firstName, lastName, phoneNumber || '', email.toLowerCase(), hashedPassword,
+      dateOfBirth || null, gender || '', residentialArea || '',
     ]);
 
     const user = result.rows[0];
