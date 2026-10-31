@@ -3,6 +3,7 @@ const router = express.Router();
 const moment = require('moment');
 const pool = require('../../db');
 const { authenticateMobile } = require('../middleware/mobileAuth');
+const { decorateClasses } = require('../services/content');
 
 const CANCEL_CUTOFF_HOURS = 2; // refund only if cancelled this many hours before class start
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -92,7 +93,7 @@ router.get('/', authenticateMobile, async (req, res) => {
     }
 
     instances.sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
-    res.json({ classes: instances });
+    res.json({ classes: await decorateClasses(req, instances) });
   } catch (err) {
     console.error('Error listing classes:', err);
     res.status(500).json({ error: 'Internal server error' });

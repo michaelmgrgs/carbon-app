@@ -1,0 +1,17 @@
+{
+  "_comment": "Starting photos/descriptions for the app. Loaded once on server start for any class type or package that has none yet; edits made in the admin panel are never overwritten.",
+  "classTypes": [
+    { "name": "Bootcamp", "photo": "bootcamp.jpg", "description": "Where fitness meets fun! Perfect for all levels to burn fat, tone up, and build a healthier lifestyle." },
+    { "name": "Box", "photo": "box.jpg", "description": "Master weightlifting, advanced skills, and conditioning. Whether you're competing or just leveling up, this is where you grow." },
+    { "name": "Core & Abs", "photo": "core-abs.jpg", "description": "Build a stronger core, improve stability, and sculpt your abs." },
+    { "name": "Open Gym", "photo": null, "description": "Train at your own pace. Your workout, your schedule." },
+    { "name": "Mobility", "photo": "mobility.jpg", "description": "Improve flexibility, restore joint mobility, and move pain-free while reducing injury risk." },
+    { "name": "Gymnastics", "photo": "gymnastics.jpg", "description": "Learn pull-ups, handstands, handstand walks, and bodyweight skills with proper technique." },
+    { "name": "Strength & Conditioning", "photo": "strength-conditioning.jpg", "description": "A high-energy class combining strength and cardio to help you build muscle, burn calories, and improve overall fitness." },
+    { "name": "HYROX", "photo": "hyrox.jpg", "description": "Train for the world's fitness race: running combined with functional stations like rowing, wall balls, and sled work. Build your engine, strength, and race-day confidence." }
+  ],
+  "packages": [
+    { "match": "Drop In", "photo": "drop-in.jpg", "description": "One session, any class. Perfect for trying Carbon or fitting in a workout when it suits you." },
+    { "match": "Personal Training", "photo": "personal-training.jpg", "description": "One-on-one coaching built around your goals, with a program, technique work, and pace tailored to you." }
+  ]
+}

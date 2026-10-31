@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> — Carbon</title>
+  <%- include('style') %>
+</head>
+<body>
+  <div class="wrap" style="max-width:640px">
+    <a class="hub-back" href="/content-admin" style="display:inline-flex;margin-bottom:18px;color:#8A8D90;text-decoration:none;font:600 14px -apple-system,sans-serif;background:#1C1D1C;border:1px solid #2E302F;border-radius:999px;padding:8px 14px;">‹ Packages &amp; Classes</a>
+    <h1><%= title %></h1>
+    <p class="subtitle"><%= kind === 'class' ? 'Class' : 'Package' %> photo and description in the Carbon app.</p>
+    <div id="error" class="banner error" style="display:none"></div>
+
+    <form id="form">
+      <label>Photo</label>
+      <% if (mediaId) { %>
+        <img id="preview" class="preview" src="/media/<%= mediaId %>" alt="">
+        <div class="row"><input type="checkbox" id="removePhoto" name="removePhoto"><label for="removePhoto" style="margin:0;color:#fff">Remove this photo</label></div>
+      <% } else { %>
+        <img id="preview" class="preview" style="display:none" alt="">
+        <div id="emptyPhoto" class="empty-photo">No photo yet</div>
+      <% } %>
+      <input type="file" id="photo" accept="image/*">
+      <div class="hint">Any size is fine — it's shrunk automatically before upload. Landscape photos look best.</div>
+
+      <label for="description">Description</label>
+      <textarea id="description" name="description" placeholder="What members can expect…"><%= description %></textarea>
+      <% if (kind === 'package' && inheritsFrom) { %>
+        <div class="hint">Leave the photo and description empty to use the <strong><%= inheritsFrom %></strong> class's photo and description.</div>
+      <% } %>
+
+      <button type="submit" id="save">Save</button>
+    </form>
+  </div>
+
+  <script>
+    var resized = null; // Blob of the shrunk photo, if one was picked
+
+    // Shrink to max 1080px and JPEG so phones load it fast and the database stays small.
+    function shrink(file) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          var max = 1080, w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, max / Math.max(w, h));
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.round(w * s); canvas.height = Math.round(h * s);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(function (blob) { blob ? resolve(blob) : reject(new Error('Could not read this image')); }, 'image/jpeg', 0.72);
+          URL.revokeObjectURL(img.src);
+        };
+        img.onerror = function () { reject(new Error('Could not read this image')); };
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
+    document.getElementById('photo').addEventListener('change', function (e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      shrink(file).then(function (blob) {
+        resized = blob;
+        var p = document.getElementById('preview');
+        p.src = URL.createObjectURL(blob); p.style.display = 'block';
+        var empty = document.getElementById('emptyPhoto'); if (empty) empty.style.display = 'none';
+        var rm = document.getElementById('removePhoto'); if (rm) rm.checked = false;
+      }).catch(function (err) { showError(err.message); });
+    });
+
+    function showError(msg) { var el = document.getElementById('error'); el.textContent = msg; el.style.display = 'block'; }
+
+    document.getElementById('form').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var btn = document.getElementById('save'); btn.disabled = true; btn.textContent = 'Saving…';
+      var data = new FormData();
+      data.append('description', document.getElementById('description').value);
+      var rm = document.getElementById('removePhoto'); if (rm && rm.checked) data.append('removePhoto', 'on');
+      if (resized) data.append('photo', resized, 'photo.jpg');
+      fetch(<%- JSON.stringify(action) %>, { method: 'POST', body: data, credentials: 'same-origin' })
+        .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Could not save'); return j; }); })
+        .then(function (j) { window.location = j.redirect; })
+        .catch(function (err) { showError(err.message); btn.disabled = false; btn.textContent = 'Save'; });
+    });
+  </script>
+</body>
+</html>

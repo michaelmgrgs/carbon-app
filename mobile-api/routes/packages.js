@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../../db');
 const { authenticateMobile } = require('../middleware/mobileAuth');
+const { decoratePackages } = require('../services/content');
 
 // GET /api/mobile/packages?branch=CFC
 // Browse all currently sellable packages (optionally filtered by branch)
@@ -21,7 +22,7 @@ router.get('/', authenticateMobile, async (req, res) => {
     query += ' ORDER BY branch_name, price ASC';
 
     const result = await pool.query(query, params);
-    res.json({ packages: result.rows });
+    res.json({ packages: await decoratePackages(req, result.rows) });
   } catch (err) {
     console.error('Error listing packages:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -33,7 +34,8 @@ router.get('/:id', authenticateMobile, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM gym_packages WHERE package_id = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Package not found' });
-    res.json({ package: result.rows[0] });
+    const [pkg] = await decoratePackages(req, result.rows);
+    res.json({ package: pkg });
   } catch (err) {
     console.error('Error fetching package:', err);
     res.status(500).json({ error: 'Internal server error' });

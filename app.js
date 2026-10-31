@@ -80,6 +80,9 @@ app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
+// Package/class photos for the mobile app (public, cached)
+app.use('/media', require('./mobile-api/routes/media'));
+
 // Public pages linked from the App Store / Google Play listings (no login)
 const legalPageData = { contactEmail: process.env.SUPPORT_EMAIL || '', lastUpdated: 'October 3, 2026' };
 app.get('/privacy', (req, res) => res.render('legal/privacy', legalPageData));
@@ -116,6 +119,7 @@ app.use('/admin-tools', adminToolsRouter);
 app.use('/package-requests', packageRequestsAdminRouter);
 app.use('/mobile-hub', mobileHubRouter);
 app.use('/news-admin', newsAdminRouter); 
+app.use('/content-admin', require('./mobile-api/routes/contentAdmin'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

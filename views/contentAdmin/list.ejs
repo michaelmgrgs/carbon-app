@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Packages &amp; Classes — Carbon</title>
+  <%- include('style') %>
+</head>
+<body>
+  <div class="wrap">
+    <%- include('../mobileHub/backLink') %>
+    <h1>Packages &amp; Classes</h1>
+    <p class="subtitle">Photos and descriptions shown in the Carbon app. Changes appear in the app right away.</p>
+    <% if (success) { %><div class="banner">✓ Saved.</div><% } %>
+
+    <h2>Classes</h2>
+    <p class="subtitle" style="margin-bottom:12px">Shown on every scheduled session of that class, and on packages named after it.</p>
+    <div class="grid">
+      <% classTypes.forEach(function (c) { %>
+        <a class="item" href="/content-admin/class/<%= encodeURIComponent(c.name) %>">
+          <div class="thumb" <% if (c.media_id) { %>style="background-image:url('/media/<%= c.media_id %>')"<% } %>><% if (!c.media_id) { %>No photo<% } %></div>
+          <div class="body">
+            <div class="name"><%= c.display_name %></div>
+            <% if (c.description) { %><div class="desc"><%= c.description %></div><% } else { %><span class="tag missing">No description</span><% } %>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+
+    <h2>Packages</h2>
+    <p class="subtitle" style="margin-bottom:12px">A package uses its class's photo and description unless you give it its own.</p>
+    <div class="grid">
+      <% packages.forEach(function (p) { var media = p.media_id || p.inheritedMedia; var desc = p.description || p.inheritedDescription; %>
+        <a class="item" href="/content-admin/package/<%= p.package_id %>">
+          <div class="thumb" <% if (media) { %>style="background-image:url('/media/<%= media %>')"<% } %>><% if (!media) { %>No photo<% } %></div>
+          <div class="body">
+            <div class="name"><%= p.name %></div>
+            <% if (desc) { %><div class="desc"><%= desc %></div><% } %>
+            <% if (p.media_id || p.description) { %><span class="tag">Own photo / text</span>
+            <% } else if (p.inheritsFrom) { %><span class="tag">Uses <%= p.inheritsFrom %></span>
+            <% } else { %><span class="tag missing">Nothing set</span><% } %>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  </div>
+</body>
+</html>
