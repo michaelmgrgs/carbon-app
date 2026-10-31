@@ -10,10 +10,11 @@
   <div class="wrap" style="max-width:640px">
     <a class="hub-back" href="/content-admin" style="display:inline-flex;margin-bottom:18px;color:#8A8D90;text-decoration:none;font:600 14px -apple-system,sans-serif;background:#1C1D1C;border:1px solid #2E302F;border-radius:999px;padding:8px 14px;">‹ Packages &amp; Classes</a>
     <h1><%= title %></h1>
-    <p class="subtitle"><%= kind === 'class' ? 'Class' : 'Package' %> photo and description in the Carbon app.</p>
+    <p class="subtitle"><%= kind === 'class' ? 'Class photo and description in the Carbon app.' : 'Package description in the Carbon app (packages show no photo).' %></p>
     <div id="error" class="banner error" style="display:none"></div>
 
     <form id="form">
+      <% if (kind === 'class') { %>
       <label>Photo</label>
       <% if (mediaId) { %>
         <img id="preview" class="preview" src="/media/<%= mediaId %>" alt="">
@@ -24,11 +25,12 @@
       <% } %>
       <input type="file" id="photo" accept="image/*">
       <div class="hint">Any size is fine — it's shrunk automatically before upload. Landscape photos look best.</div>
+      <% } %>
 
       <label for="description">Description</label>
       <textarea id="description" name="description" placeholder="What members can expect…"><%= description %></textarea>
       <% if (kind === 'package' && inheritsFrom) { %>
-        <div class="hint">Leave the photo and description empty to use the <strong><%= inheritsFrom %></strong> class's photo and description.</div>
+        <div class="hint">Leave it empty to use the <strong><%= inheritsFrom %></strong> class description.</div>
       <% } %>
 
       <button type="submit" id="save">Save</button>
@@ -55,7 +57,8 @@
       });
     }
 
-    document.getElementById('photo').addEventListener('change', function (e) {
+    var photoInput = document.getElementById('photo');
+    if (photoInput) photoInput.addEventListener('change', function (e) {
       var file = e.target.files[0];
       if (!file) return;
       shrink(file).then(function (blob) {

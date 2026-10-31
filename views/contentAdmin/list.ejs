@@ -28,15 +28,14 @@
     </div>
 
     <h2>Packages</h2>
-    <p class="subtitle" style="margin-bottom:12px">A package uses its class's photo and description unless you give it its own.</p>
+    <p class="subtitle" style="margin-bottom:12px">Packages show a description only (no photo), so the same class photo isn't repeated. A package uses its class's description unless you give it its own.</p>
     <div class="grid">
-      <% packages.forEach(function (p) { var media = p.media_id || p.inheritedMedia; var desc = p.description || p.inheritedDescription; %>
+      <% packages.forEach(function (p) { var desc = p.description || p.inheritedDescription; %>
         <a class="item" href="/content-admin/package/<%= p.package_id %>">
-          <div class="thumb" <% if (media) { %>style="background-image:url('/media/<%= media %>')"<% } %>><% if (!media) { %>No photo<% } %></div>
           <div class="body">
             <div class="name"><%= p.name %></div>
             <% if (desc) { %><div class="desc"><%= desc %></div><% } %>
-            <% if (p.media_id || p.description) { %><span class="tag">Own photo / text</span>
+            <% if (p.description) { %><span class="tag">Own description</span>
             <% } else if (p.inheritsFrom) { %><span class="tag">Uses <%= p.inheritsFrom %></span>
             <% } else { %><span class="tag missing">Nothing set</span><% } %>
           </div>
