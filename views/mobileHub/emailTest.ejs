@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Test — Carbon</title>
+  <style>
+    body { margin: 0; background: #141514; color: #fff; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 40px 16px; }
+    .wrap { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    p.subtitle { color: #8A8D90; margin: 0 0 24px; line-height: 1.5; }
+    input { width: 100%; box-sizing: border-box; background: #1C1D1C; border: 1px solid #2E302F; border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 15px; }
+    button { margin-top: 14px; padding: 13px 22px; border: 0; border-radius: 999px; background: #D6362F; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .result { margin-top: 24px; border-radius: 12px; padding: 16px; font-size: 14px; line-height: 1.6; }
+    .ok { background: #3BB27322; border: 1px solid #3BB27355; }
+    .bad { background: #E8483D22; border: 1px solid #E8483D55; }
+    .result h2 { margin: 0 0 8px; font-size: 16px; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    td { padding: 3px 12px 3px 0; vertical-align: top; }
+    td:first-child { color: #8A8D90; }
+    code { background: #0008; padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <%- include('backLink') %>
+    <h1>Email Test</h1>
+    <p class="subtitle">Sends a test email using the server's current email settings and shows exactly what the mail server answered. Sign-up codes and password resets use the same settings.</p>
+    <form method="POST" action="/admin-tools/email-test">
+      <input type="email" name="to" placeholder="Send test to…" value="<%= to %>" required>
+      <button type="submit">Send test email</button>
+    </form>
+    <% if (result) { %>
+      <div class="result <%= result.ok ? 'ok' : 'bad' %>">
+        <h2><%= result.ok ? '✓ Sent — the mail server accepted it' : '✗ Failed at: ' + result.step %></h2>
+        <% if (result.error) { %><div>Error: <code><%= result.error %></code></div><% } %>
+        <% if (result.code) { %><div>Code: <code><%= result.code %></code></div><% } %>
+        <% if (result.response) { %><div>Server said: <code><%= result.response %></code></div><% } %>
+        <% if (result.settings) { %>
+          <table>
+            <tr><td>Host</td><td><code><%= result.settings.host %></code></td></tr>
+            <tr><td>Port</td><td><code><%= result.settings.port %></code> (<%= result.settings.secure %>)</td></tr>
+            <tr><td>User</td><td><code><%= result.settings.user %></code></td></tr>
+            <tr><td>From</td><td><code><%= result.settings.from %></code></td></tr>
+            <tr><td>Password set</td><td><%= result.settings.passwordSet ? 'yes' : 'NO' %></td></tr>
+          </table>
+        <% } %>
+        <% if (result.ok) { %><p style="margin:10px 0 0;color:#8A8D90">If it doesn't arrive within a few minutes, check Junk/Spam and any quarantine on the receiving side.</p><% } %>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>

@@ -32,6 +32,11 @@ function getTransporter() {
     port: parseInt(process.env.SMTP_PORT || '587', 10),
     secure: process.env.SMTP_PORT === '465',
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    // Fail within seconds if the mail server is unreachable or settings are wrong;
+    // the defaults wait minutes, long after the app has given up.
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
   return transporter;
 }
@@ -93,4 +98,35 @@ async function sendEmailVerificationCode(toEmail, code) {
   return { delivered: true };
 }
 
-module.exports = { sendPasswordResetCode, sendEmailVerificationCode };
+// For the admin "Email test" page: send a plain test message and report exactly
+// what the mail server said, so wrong settings can be diagnosed without server logs.
+async function sendTestEmail(toEmail) {
+  const settings = {
+    host: process.env.SMTP_HOST || '(not set)',
+    port: process.env.SMTP_PORT || '587 (default)',
+    secure: process.env.SMTP_PORT === '465' ? 'SSL (port 465)' : 'STARTTLS',
+    user: process.env.SMTP_USER || '(not set)',
+    from: process.env.SMTP_FROM || process.env.SMTP_USER || '(not set)',
+    passwordSet: Boolean(process.env.SMTP_PASS),
+  };
+  const t = getTransporter();
+  if (!t) return { ok: false, settings, step: 'config', error: 'SMTP_HOST, SMTP_USER or SMTP_PASS is missing.' };
+  try {
+    await t.verify(); // connect + log in
+  } catch (err) {
+    return { ok: false, settings, step: 'connect / log in', error: err.message, code: err.code, response: err.response };
+  }
+  try {
+    const info = await t.sendMail({
+      from: settings.from,
+      to: toEmail,
+      subject: 'Carbon email test',
+      text: 'This is a test email from the Carbon admin panel. If you got it, sign-up codes and password resets can be delivered.',
+    });
+    return { ok: true, settings, step: 'sent', response: info.response, accepted: info.accepted, rejected: info.rejected };
+  } catch (err) {
+    return { ok: false, settings, step: 'send', error: err.message, code: err.code, response: err.response };
+  }
+}
+
+module.exports = { sendPasswordResetCode, sendEmailVerificationCode, sendTestEmail };

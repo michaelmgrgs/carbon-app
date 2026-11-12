@@ -37,4 +37,13 @@ router.post('/run-inactivity-check', staffOnly, async (req, res) => {
 // Old link (used to run the check on page load) — now just opens the page.
 router.get('/run-inactivity-check', staffOnly, (req, res) => res.redirect('/admin-tools/inactivity'));
 
+// GET/POST /admin-tools/email-test — send a test email and show the mail server's answer.
+const { sendTestEmail } = require('../services/mailer');
+router.get('/email-test', staffOnly, (req, res) => res.render('mobileHub/emailTest', { result: null, to: '' }));
+router.post('/email-test', staffOnly, async (req, res) => {
+  const to = String(req.body.to || '').trim();
+  const result = to ? await sendTestEmail(to) : { ok: false, step: 'input', error: 'Enter an email address.', settings: null };
+  res.render('mobileHub/emailTest', { result, to });
+});
+
 module.exports = router;
