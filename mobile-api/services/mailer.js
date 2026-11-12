@@ -67,4 +67,30 @@ async function sendPasswordResetCode(toEmail, firstName, code) {
   return { delivered: true };
 }
 
-module.exports = { sendPasswordResetCode };
+// Sign-up: proves the member owns the email before an account is created.
+async function sendEmailVerificationCode(toEmail, code) {
+  const t = getTransporter();
+  if (!t) {
+    console.warn(`\n⚠️  SMTP not configured — sign-up verification code for ${toEmail} is: ${code}\n`);
+    return { delivered: false };
+  }
+
+  await t.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: toEmail,
+    subject: 'Your Carbon verification code',
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color:#141514;">Verify your email</h2>
+        <p>Welcome to Carbon! Enter this code in the app to continue creating your account. It expires in 15 minutes.</p>
+        <div style="background:#141514; color:#fff; font-size:32px; font-weight:800; letter-spacing:8px; text-align:center; padding:20px; border-radius:12px; margin:20px 0;">
+          ${code}
+        </div>
+        <p style="color:#888; font-size:13px;">If you didn't try to sign up for Carbon, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+  return { delivered: true };
+}
+
+module.exports = { sendPasswordResetCode, sendEmailVerificationCode };
