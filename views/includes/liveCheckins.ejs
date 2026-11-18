@@ -68,14 +68,30 @@
     document.body.appendChild(btn);
   }
 
-  var source = new EventSource('/attendance/desk/live/events');
-  source.onmessage = function (msg) {
-    var e;
-    try { e = JSON.parse(msg.data); } catch (err) { return; }
-    toast(e);
-    systemNotification(e);
-    window.dispatchEvent(new CustomEvent('carbon:checkin', { detail: e }));
-  };
+  // Connected only while the page is visible: an open stream keeps a database
+  // connection open, so a tab left in the background overnight would keep the
+  // database awake. Hidden for 2+ minutes = disconnect; visible again = reconnect.
+  var source = null, hideTimer = null;
+  function connect() {
+    if (source) return;
+    source = new EventSource('/attendance/desk/live/events');
+    source.onmessage = function (msg) {
+      var e;
+      try { e = JSON.parse(msg.data); } catch (err) { return; }
+      toast(e);
+      systemNotification(e);
+      window.dispatchEvent(new CustomEvent('carbon:checkin', { detail: e }));
+    };
+  }
+  function disconnect() {
+    if (source) { source.close(); source = null; }
+  }
+  document.addEventListener('visibilitychange', function () {
+    clearTimeout(hideTimer);
+    if (document.hidden) hideTimer = setTimeout(disconnect, 2 * 60 * 1000);
+    else connect();
+  });
+  connect();
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', offerSystemNotifications);
   else offerSystemNotifications();
