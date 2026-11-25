@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Online Payments — Carbon</title>
+  <style>
+    body { margin: 0; background: #141514; color: #fff; font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; padding: 40px 16px; }
+    .wrap { max-width: 960px; margin: 0 auto; }
+    h1 { font-size: 26px; margin: 0 0 4px; }
+    p.subtitle { color: #8A8D90; margin: 0 0 20px; line-height: 1.5; }
+    h2 { font-size: 15px; color: #8A8D90; text-transform: uppercase; letter-spacing: .5px; margin: 32px 0 10px; }
+    .card { background: #1C1D1C; border: 1px solid #2E302F; border-radius: 12px; padding: 18px; }
+    .banner { border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 14px; }
+    .ok { background: #3BB27322; border: 1px solid #3BB27355; color: #3BB273; }
+    .warn { background: #F2A93B22; border: 1px solid #F2A93B55; color: #F2A93B; }
+    label.opt { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; cursor: pointer; }
+    label.opt span small { display: block; color: #8A8D90; font-size: 13px; margin-top: 2px; }
+    textarea { width: 100%; box-sizing: border-box; min-height: 90px; background: #141514; border: 1px solid #2E302F; border-radius: 10px; padding: 10px 12px; color: #fff; font: 14px/1.5 inherit; margin-top: 6px; }
+    button { margin-top: 14px; padding: 12px 22px; border: 0; border-radius: 999px; background: #D6362F; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .table-wrap { overflow-x: auto; background: #1C1D1C; border: 1px solid #2E302F; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
+    th { text-align: left; color: #8A8D90; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; padding: 12px 14px; border-bottom: 1px solid #2E302F; }
+    td { padding: 11px 14px; border-bottom: 1px solid #2E302F; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    .pill { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+    .paid { color: #3BB273; background: #3BB27322; }
+    .pending { color: #F2A93B; background: #F2A93B22; }
+    .failed { color: #E8483D; background: #E8483D22; }
+    .muted { color: #8A8D90; }
+    .err { color: #E8483D; font-size: 12px; margin-top: 4px; word-break: break-word; max-width: 360px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <%- include('backLink') %>
+    <h1>Online Payments</h1>
+    <p class="subtitle">Members pay for packages in the app through Paymob; paid packages are activated automatically and appear in Finance as "Paymob".</p>
+
+    <% if (saved) { %><div class="banner ok">✓ Saved.</div><% } %>
+    <% if (!configured) { %>
+      <div class="banner warn">Paymob keys are missing on the server (PAYMOB_SECRET_KEY, PAYMOB_PUBLIC_KEY, PAYMOB_HMAC_SECRET and an integration ID). Payments stay hidden in the app until they're set.</div>
+    <% } else if (mode === 'test') { %>
+      <div class="banner warn">Paymob <strong>TEST mode</strong>: use Paymob's test cards — no real money is charged. Switch the keys to live ones before opening payments to everyone.</div>
+    <% } %>
+
+    <h2>Who can pay in the app</h2>
+    <form class="card" method="POST" action="/admin-tools/payments">
+      <label class="opt"><input type="radio" name="mode" value="off" <%= settings.mode === 'off' ? 'checked' : '' %>><span>Off<small>Nobody sees "Pay now"; members request packages and pay at the gym.</small></span></label>
+      <label class="opt"><input type="radio" name="mode" value="testers" <%= settings.mode === 'testers' ? 'checked' : '' %>><span>Testers only<small>Only the emails below see "Pay now" (staff, and the App Store / Google Play reviewer demo account).</small></span></label>
+      <label class="opt"><input type="radio" name="mode" value="everyone" <%= settings.mode === 'everyone' ? 'checked' : '' %>><span>Everyone<small>All members can pay in the app. Turn on only after both stores approve the payments update.</small></span></label>
+      <div style="margin-top:14px" class="muted">Tester emails (one per line)</div>
+      <textarea name="testerEmails" placeholder="you@example.com"><%= settings.testerEmails.join('\n') %></textarea>
+      <button type="submit">Save</button>
+    </form>
+
+    <h2>Recent payments</h2>
+    <% if (!payments.length) { %>
+      <div class="card muted">No online payments yet.</div>
+    <% } else { %>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Member</th><th>Package</th><th>Amount</th><th>Status</th><th>Method</th><th>Paymob ref</th></tr></thead>
+        <tbody>
+          <% payments.forEach(function (p) { %>
+            <tr>
+              <td><%= new Date(p.created_at).toLocaleString('en-GB', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) %></td>
+              <td><%= p.first_name %> <%= p.last_name %><div class="muted"><%= p.email %></div></td>
+              <td><%= p.package_name %></td>
+              <td><%= (p.amount_cents / 100).toLocaleString('en-US') %> EGP</td>
+              <td><span class="pill <%= p.status %>"><%= p.status %></span><% if (p.error) { %><div class="err"><%= p.error %></div><% } %></td>
+              <td class="muted"><%= p.method || '—' %></td>
+              <td class="muted"><%= p.transaction_id || p.paymob_order_id || '—' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table></div>
+    <% } %>
+  </div>
+</body>
+</html>

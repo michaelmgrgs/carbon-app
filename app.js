@@ -80,13 +80,18 @@ app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
+// Page Paymob's checkout returns to after paying (shown inside the app)
+app.use('/payments', require('./mobile-api/routes/paymentReturn'));
+
 // Package/class photos for the mobile app (public, cached)
 app.use('/media', require('./mobile-api/routes/media'));
 
 // Public pages linked from the App Store / Google Play listings (no login)
-const legalPageData = { contactEmail: process.env.SUPPORT_EMAIL || '', lastUpdated: 'October 3, 2026' };
+const legalPageData = { contactEmail: process.env.SUPPORT_EMAIL || '', lastUpdated: 'November 25, 2026' };
 app.get('/privacy', (req, res) => res.render('legal/privacy', legalPageData));
 app.get('/support', (req, res) => res.render('legal/support', legalPageData));
+app.get('/refunds', (req, res) => res.render('legal/refunds', { ...legalPageData, lastUpdated: 'November 25, 2026' }));
+app.get('/terms', (req, res) => res.render('legal/terms', { ...legalPageData, lastUpdated: 'November 25, 2026' }));
 
 // Routes
 app.use('/registration', RegistrationComponent);

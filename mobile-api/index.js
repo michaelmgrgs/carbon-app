@@ -9,5 +9,6 @@ router.use('/classes', require('./routes/classes'));
 router.use('/news', require('./routes/news'));
 router.use('/notifications', require('./routes/notifications'));
 router.use('/profile', require('./routes/profile'));
+router.use('/payments', require('./routes/payments'));
 
 module.exports = router;

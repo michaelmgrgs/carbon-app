@@ -46,4 +46,27 @@ router.post('/email-test', staffOnly, async (req, res) => {
   res.render('mobileHub/emailTest', { result, to });
 });
 
+// GET/POST /admin-tools/payments — who can pay online, and every online payment.
+const paymob = require('../services/paymob');
+router.get('/payments', staffOnly, async (req, res) => {
+  try {
+    res.render('mobileHub/payments', {
+      settings: await paymob.getSettings(), configured: paymob.isConfigured(),
+      mode: process.env.PAYMOB_MODE || 'test', payments: await paymob.recentPayments(), saved: req.query.saved,
+    });
+  } catch (err) {
+    console.error('Payments page error:', err);
+    res.status(500).send('Could not load payments.');
+  }
+});
+router.post('/payments', staffOnly, async (req, res) => {
+  try {
+    await paymob.saveSettings({ mode: req.body.mode, testerEmails: String(req.body.testerEmails || '').split(/[\s,]+/) });
+    res.redirect('/admin-tools/payments?saved=1');
+  } catch (err) {
+    console.error('Saving payment settings failed:', err);
+    res.status(500).send('Could not save settings.');
+  }
+});
+
 module.exports = router;

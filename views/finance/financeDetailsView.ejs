@@ -28,6 +28,7 @@
                     <div class="summary-box" id="cashTotal">Cash: 0</div>
                     <div class="summary-box" id="instapayTotal">Instapay: 0</div>
                     <div class="summary-box" id="visaTotal">Visa: 0</div>
+                    <div class="summary-box" id="paymobTotal">Online (Paymob): 0</div>
                 </div>
 
                 <div id="financeTableDetails">
@@ -224,7 +225,7 @@
             }
 
             function updatePaymentTotals(totals) {
-                let map = { cash: 0, visa: 0, instapay: 0 };
+                let map = { cash: 0, visa: 0, instapay: 0, paymob: 0 };
 
                 if (!Array.isArray(totals)) totals = [];
 
@@ -234,11 +235,13 @@
                     if (pm.includes('cash')) map.cash += val;
                     else if (pm.includes('visa')) map.visa += val;
                     else if (pm.includes('instapay') || pm.includes('insta') || pm.includes('insta-pay')) map.instapay += val;
+                    else if (pm.includes('paymob')) map.paymob += val; // paid in the mobile app
                 });
 
                 $('#cashTotal').text(`Cash: ${formatNumber(map.cash)}`);
                 $('#visaTotal').text(`Visa: ${formatNumber(map.visa)}`);
                 $('#instapayTotal').text(`Instapay: ${formatNumber(map.instapay)}`);
+                $('#paymobTotal').text(`Online (Paymob): ${formatNumber(map.paymob)}`);
             }
         });
     </script>

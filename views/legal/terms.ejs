@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Terms of Use – Carbon</title>
+  <%- include('style') %>
+</head>
+<body>
+  <main>
+    <h1>Terms of Use</h1>
+    <p class="muted">Carbon Gym · Last updated: <%= lastUpdated %></p>
+
+    <p>By creating an account or using the Carbon app, you agree to these terms.</p>
+
+    <h2>Your account</h2>
+    <ul>
+      <li>Keep your login details private; you are responsible for activity on your account.</li>
+      <li>Give accurate information. You can update it in the app or ask the front desk.</li>
+      <li>You can delete your account at any time from Profile → Delete account.</li>
+    </ul>
+
+    <h2>Packages and payments</h2>
+    <ul>
+      <li>Packages give access to training sessions and classes at Carbon gym locations, as described in the app.</li>
+      <li>Prices are in Egyptian pounds (EGP) and are shown before you pay. Payments in the app are processed securely by
+        Paymob.</li>
+      <li>A package paid in the app starts on the payment date and is valid for the period shown on the package.</li>
+      <li>Each check-in uses one session. Unused sessions expire at the end of the package's validity period.</li>
+      <li>Refunds follow our <a href="/refunds">Refund Policy</a>.</li>
+    </ul>
+
+    <h2>Classes and check-in</h2>
+    <ul>
+      <li>Class bookings depend on available spots. Please cancel bookings you can't attend.</li>
+      <li>Check in by scanning the QR code at the front desk of the branch you are training at.</li>
+    </ul>
+
+    <h2>Use of the app</h2>
+    <p>Don't misuse the app, try to access other members' information, or interfere with how it works. We may suspend
+      accounts that do.</p>
+
+    <h2>Changes</h2>
+    <p>We may update these terms; the date at the top shows the latest version.</p>
+
+    <h2>Contact</h2>
+    <p>Questions? <% if (contactEmail) { %>Email <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a> or<% } %>
+      speak to the front desk at any Carbon branch.</p>
+
+    <p class="muted"><a href="/refunds">Refund Policy</a> · <a href="/privacy">Privacy Policy</a> · <a href="/support">Support</a></p>
+  </main>
+</body>
+</html>

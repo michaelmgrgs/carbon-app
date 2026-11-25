@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Refund Policy – Carbon</title>
+  <%- include('style') %>
+</head>
+<body>
+  <main>
+    <h1>Refund Policy</h1>
+    <p class="muted">Carbon Gym · Last updated: <%= lastUpdated %></p>
+
+    <p>This policy applies to membership packages bought from Carbon Gym, whether paid in the Carbon app or at the front
+      desk.</p>
+
+    <h2>Unused packages</h2>
+    <p>If you haven't used any session of a package, you can ask for a full refund. Contact us<% if (contactEmail) { %>
+      at <a href="mailto:<%= contactEmail %>"><%= contactEmail %></a> or<% } %> at the front desk of any Carbon branch with
+      the name and email on your account.</p>
+
+    <h2>Used packages</h2>
+    <p><strong>Once any session of a package has been used</strong> (a check-in or an attended class booking), the package
+      can no longer be refunded.</p>
+
+    <h2>How refunds are paid</h2>
+    <ul>
+      <li>Payments made in the app are refunded to the same card or wallet you paid with, through our payment provider
+        Paymob. Depending on your bank, it usually appears within 7–14 business days.</li>
+      <li>Payments made at the front desk are refunded at the front desk.</li>
+    </ul>
+
+    <h2>Failed or duplicate payments</h2>
+    <p>If you were charged but your package wasn't activated, or you were charged twice for the same package, contact us
+      and we will activate the package or refund the extra payment.</p>
+
+    <p class="muted"><a href="/terms">Terms of Use</a> · <a href="/privacy">Privacy Policy</a> · <a href="/support">Support</a></p>
+  </main>
+</body>
+</html>
