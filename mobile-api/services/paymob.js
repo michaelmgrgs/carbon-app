@@ -36,7 +36,7 @@ const ready = (async () => {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(paymob_order_id)');
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS app_settings (
+    CREATE TABLE IF NOT EXISTS mobile_app_settings (
       key TEXT PRIMARY KEY,
       value JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -53,7 +53,7 @@ function publicBase(req) {
 // mode: 'off' (nobody), 'testers' (listed emails only), 'everyone'.
 async function getSettings() {
   await ready;
-  const { rows } = await pool.query("SELECT value FROM app_settings WHERE key = 'payments'");
+  const { rows } = await pool.query("SELECT value FROM mobile_app_settings WHERE key = 'payments'");
   const v = rows[0] ? rows[0].value : {};
   return { mode: v.mode || 'testers', testerEmails: Array.isArray(v.testerEmails) ? v.testerEmails : [] };
 }
@@ -65,7 +65,7 @@ async function saveSettings({ mode, testerEmails }) {
     testerEmails: (testerEmails || []).map((e) => String(e).trim().toLowerCase()).filter(Boolean),
   };
   await pool.query(
-    `INSERT INTO app_settings (key, value, updated_at) VALUES ('payments', $1, NOW())
+    `INSERT INTO mobile_app_settings (key, value, updated_at) VALUES ('payments', $1, NOW())
      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
     [JSON.stringify(value)]
   );
