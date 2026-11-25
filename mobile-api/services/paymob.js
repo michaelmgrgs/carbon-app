@@ -14,6 +14,8 @@ const { sendPushToUser } = require('./pushNotifications');
  * PAYMOB_HMAC_SECRET, PAYMOB_CARD_INTEGRATION_ID, PAYMOB_WALLET_INTEGRATION_ID.
  */
 const PAYMOB_BASE = 'https://accept.paymob.com';
+// Provider errors use 422, not 502: DigitalOcean replaces 502 replies with its own
+// page, so the app would never see our message.
 
 const ready = (async () => {
   await pool.query(`
@@ -143,13 +145,13 @@ async function createPayment(req, userId, packageId) {
     data = await res.json().catch(() => ({}));
   } catch (err) {
     await pool.query("UPDATE payments SET status = 'failed', error = $2 WHERE id = $1", [paymentId, `Could not reach Paymob: ${err.message}`]);
-    throw Object.assign(new Error("Couldn't reach the payment provider. Please try again."), { status: 502 });
+    throw Object.assign(new Error("Couldn't reach the payment provider. Please try again."), { status: 422 });
   }
   if (!res.ok || !data.client_secret) {
     const detail = JSON.stringify(data).slice(0, 500);
     console.error('Paymob intention failed:', res.status, detail);
     await pool.query("UPDATE payments SET status = 'failed', error = $2 WHERE id = $1", [paymentId, `Paymob ${res.status}: ${detail}`]);
-    throw Object.assign(new Error("Couldn't start the payment. Please try again or pay at the gym."), { status: 502 });
+    throw Object.assign(new Error("Couldn't start the payment. Please try again or pay at the gym."), { status: 422 });
   }
 
   await pool.query('UPDATE payments SET intention_id = $2, paymob_order_id = $3 WHERE id = $1', [
