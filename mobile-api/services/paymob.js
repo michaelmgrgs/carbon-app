@@ -87,6 +87,28 @@ async function paymentsEnabledFor(email) {
   return false;
 }
 
+// What the server is actually configured with, for the admin page. Never shows the
+// keys themselves: only whether each looks like a test or live key (Paymob prefixes
+// them egy_sk_test_ / egy_sk_live_ / egy_pk_test_ / egy_pk_live_).
+function keyMode(v) {
+  const k = String(v || '');
+  if (!k) return 'missing';
+  if (/_test_/i.test(k)) return 'test';
+  if (/_live_/i.test(k)) return 'live';
+  return 'unknown format';
+}
+
+function diagnostics() {
+  return {
+    secretKey: keyMode(process.env.PAYMOB_SECRET_KEY),
+    publicKey: keyMode(process.env.PAYMOB_PUBLIC_KEY),
+    hmacSet: Boolean(process.env.PAYMOB_HMAC_SECRET),
+    cardIntegrationId: process.env.PAYMOB_CARD_INTEGRATION_ID || '(not set)',
+    walletIntegrationId: process.env.PAYMOB_WALLET_INTEGRATION_ID || '(not set)',
+    sentIntegrationIds: integrationIds(),
+  };
+}
+
 function integrationIds() {
   return [process.env.PAYMOB_CARD_INTEGRATION_ID, process.env.PAYMOB_WALLET_INTEGRATION_ID]
     .filter(Boolean).map((v) => parseInt(v, 10)).filter(Number.isFinite);
@@ -150,7 +172,7 @@ async function createPayment(req, userId, packageId) {
   if (!res.ok || !data.client_secret) {
     const detail = JSON.stringify(data).slice(0, 500);
     console.error('Paymob intention failed:', res.status, detail);
-    await pool.query("UPDATE payments SET status = 'failed', error = $2 WHERE id = $1", [paymentId, `Paymob ${res.status}: ${detail}`]);
+    await pool.query("UPDATE payments SET status = 'failed', error = $2 WHERE id = $1", [paymentId, `Paymob ${res.status}: ${detail} — sent integration IDs ${JSON.stringify(body.payment_methods)}`]);
     throw Object.assign(new Error("Couldn't start the payment. Please try again or pay at the gym."), { status: 422 });
   }
 
@@ -318,7 +340,7 @@ async function recentPayments(limit = 100) {
 }
 
 module.exports = {
-  ready, isConfigured, getSettings, saveSettings, paymentsEnabledFor, createPayment,
+  ready, isConfigured, diagnostics, getSettings, saveSettings, paymentsEnabledFor, createPayment,
   verifyWebhook, verifyRedirect, applyTransaction, fromWebhook, fromRedirect, getPaymentForUser, recentPayments,
   HMAC_FIELDS, hmacFor,
 };

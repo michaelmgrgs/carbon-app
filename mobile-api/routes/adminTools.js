@@ -51,7 +51,7 @@ const paymob = require('../services/paymob');
 router.get('/payments', staffOnly, async (req, res) => {
   try {
     res.render('mobileHub/payments', {
-      settings: await paymob.getSettings(), configured: paymob.isConfigured(),
+      settings: await paymob.getSettings(), configured: paymob.isConfigured(), diag: paymob.diagnostics(),
       mode: process.env.PAYMOB_MODE || 'test', payments: await paymob.recentPayments(), saved: req.query.saved,
     });
   } catch (err) {

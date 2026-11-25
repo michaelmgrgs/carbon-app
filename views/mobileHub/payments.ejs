@@ -44,6 +44,16 @@
       <div class="banner warn">Paymob <strong>TEST mode</strong>: use Paymob's test cards — no real money is charged. Switch the keys to live ones before opening payments to everyone.</div>
     <% } %>
 
+    <h2>Server connection to Paymob</h2>
+    <div class="card" style="font-size:14px;line-height:1.9">
+      <div>Secret key: <strong><%= diag.secretKey %></strong> · Public key: <strong><%= diag.publicKey %></strong> · HMAC: <strong><%= diag.hmacSet ? 'set' : 'missing' %></strong></div>
+      <div>Card integration ID: <strong><%= diag.cardIntegrationId %></strong> · Wallet integration ID: <strong><%= diag.walletIntegrationId %></strong></div>
+      <div class="muted">Sent to Paymob: <%= JSON.stringify(diag.sentIntegrationIds) %>. The keys and the integration IDs must all be from the same mode (test or live) in the Paymob dashboard.</div>
+      <% if (diag.secretKey !== diag.publicKey && diag.secretKey !== 'missing' && diag.publicKey !== 'missing') { %>
+        <div style="color:#E8483D;margin-top:6px">⚠ The secret key and public key are from different modes.</div>
+      <% } %>
+    </div>
+
     <h2>Who can pay in the app</h2>
     <form class="card" method="POST" action="/admin-tools/payments">
       <label class="opt"><input type="radio" name="mode" value="off" <%= settings.mode === 'off' ? 'checked' : '' %>><span>Off<small>Nobody sees "Pay now"; members request packages and pay at the gym.</small></span></label>
