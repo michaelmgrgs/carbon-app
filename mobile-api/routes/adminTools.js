@@ -56,7 +56,8 @@ router.get('/payments', staffOnly, async (req, res) => {
     });
   } catch (err) {
     console.error('Payments page error:', err);
-    res.status(500).send('Could not load payments.');
+    // Staff-only page: show the reason so problems can be fixed without server logs.
+    res.status(500).send(`Could not load payments: ${String(err && err.message).replace(/[<>&]/g, '')}`);
   }
 });
 router.post('/payments', staffOnly, async (req, res) => {
